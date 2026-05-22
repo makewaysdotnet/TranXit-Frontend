@@ -1,5 +1,8 @@
+"use client";
+
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
+import { useState } from "react";
 
 type FigmaImage = {
   alt: string;
@@ -27,7 +30,17 @@ type FigmaExportPageProps = {
   desktop: FigmaImage;
   desktopHotspots?: Hotspot[];
   mobile: FigmaImage;
+  mobileDropdown?: FigmaImage;
+  mobileDropdownHotspots?: Hotspot[];
   mobileHotspots?: Hotspot[];
+  mobileMenuButton?: {
+    height: number;
+    width: number;
+    x: number;
+    y: number;
+  };
+  tablet?: FigmaImage;
+  tabletHotspots?: Hotspot[];
 };
 
 export function FigmaExportPage({
@@ -35,22 +48,45 @@ export function FigmaExportPage({
   desktop,
   desktopHotspots = [],
   mobile,
+  mobileDropdown,
+  mobileDropdownHotspots = [],
   mobileHotspots = [],
+  mobileMenuButton,
+  tablet,
+  tabletHotspots = [],
 }: FigmaExportPageProps) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const activeMobileImage = isMobileMenuOpen && mobileDropdown ? mobileDropdown : mobile;
+  const activeMobileHotspots =
+    isMobileMenuOpen && mobileDropdown ? mobileDropdownHotspots : mobileHotspots;
+
   return (
     <main className="bg-white">
       <FigmaFrame
         anchors={anchors}
-        className="hidden sm:block"
+        className="hidden lg:block"
         image={desktop}
         hotspots={desktopHotspots}
       />
-      <FigmaFrame
-        anchors={anchors}
-        className="block sm:hidden"
-        image={mobile}
-        hotspots={mobileHotspots}
-      />
+      {tablet ? (
+        <FigmaFrame
+          anchors={anchors}
+          className="hidden sm:block lg:hidden"
+          image={tablet}
+          hotspots={tabletHotspots.length > 0 ? tabletHotspots : desktopHotspots}
+        />
+      ) : null}
+      <div className="block sm:hidden">
+        <FigmaFrame
+          anchors={anchors}
+          image={activeMobileImage}
+          hotspots={activeMobileHotspots}
+          menuButton={mobileMenuButton}
+          onMenuButtonClick={
+            mobileDropdown ? () => setIsMobileMenuOpen((value) => !value) : undefined
+          }
+        />
+      </div>
     </main>
   );
 }
@@ -60,14 +96,23 @@ function FigmaFrame({
   className,
   hotspots,
   image,
+  menuButton,
+  onMenuButtonClick,
 }: {
   anchors: Anchor[];
-  className: string;
+  className?: string;
   hotspots: Hotspot[];
   image: FigmaImage;
+  menuButton?: {
+    height: number;
+    width: number;
+    x: number;
+    y: number;
+  };
+  onMenuButtonClick?: () => void;
 }) {
   return (
-    <div className={className}>
+    <div className={className ?? ""}>
       <div className="relative mx-auto w-full max-w-[1920px]">
         <img
           alt={image.alt}
@@ -89,7 +134,7 @@ function FigmaFrame({
         {hotspots.map((hotspot) => (
           <Link
             aria-label={hotspot["aria-label"]}
-            className="absolute block rounded-sm focus:outline-none focus:ring-2 focus:ring-[#BFF000]"
+            className="absolute block rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#BFF000]"
             href={hotspot.href}
             key={`${hotspot.href}-${hotspot["aria-label"]}`}
             style={{
@@ -100,6 +145,20 @@ function FigmaFrame({
             }}
           />
         ))}
+        {menuButton && onMenuButtonClick ? (
+          <button
+            aria-label="Toggle mobile menu"
+            className="absolute block rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[#BFF000]"
+            onClick={onMenuButtonClick}
+            style={{
+              height: `${(menuButton.height / image.height) * 100}%`,
+              left: `${(menuButton.x / image.width) * 100}%`,
+              top: `${(menuButton.y / image.height) * 100}%`,
+              width: `${(menuButton.width / image.width) * 100}%`,
+            }}
+            type="button"
+          />
+        ) : null}
       </div>
     </div>
   );
