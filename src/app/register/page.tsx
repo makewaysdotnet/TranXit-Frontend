@@ -1,5 +1,5 @@
-import { AuthPanel } from "@/components/auth/auth-panel";
+import { CourierOnboardingScreen } from "@/components/onboarding/courier-onboarding-screen";
 
 export default function RegisterPage() {
-  return <AuthPanel mode="register" />;
+  return <CourierOnboardingScreen screen="registerStart" />;
 }
