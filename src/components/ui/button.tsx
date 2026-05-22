@@ -10,6 +10,7 @@ export function Button({
   className,
   children,
   icon,
+  type = "button",
   variant = "primary",
   ...props
 }: ButtonProps) {
@@ -24,6 +25,7 @@ export function Button({
         variant === "danger" && "bg-[#EB5E55] text-white hover:bg-[#d94d45]",
         className,
       )}
+      type={type}
       {...props}
     >
       {icon}
