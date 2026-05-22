@@ -2,26 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+@font-face {
+  font-family: "Uber Move";
+  src: url("/fonts/UberMove-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
+@font-face {
+  font-family: "Uber Move";
+  src: url("/fonts/UberMove-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Uber Move";
+  src: url("/fonts/UberMove-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Avenir";
+  src: url("/fonts/AvenirLTStd-Book.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Glendale";
+  src: url("/fonts/Glendale-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-display: swap;
+}
+
+:root {
+  --tranxit-accent: #bff000;
+  --tranxit-ink: #171721;
+  --tranxit-muted: #8083a3;
+  --tranxit-border: #e4e6e8;
+  --tranxit-surface: #fbfbff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  min-height: 100%;
+  margin: 0;
+  background: var(--tranxit-surface);
+  color: var(--tranxit-ink);
+  font-family: "Uber Move", "Avenir", Arial, sans-serif;
+}
+
+.font-display {
+  font-family: "Glendale", "Uber Move", Arial, sans-serif;
 }
