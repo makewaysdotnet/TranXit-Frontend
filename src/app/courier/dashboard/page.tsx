@@ -1,5 +1,5 @@
-import { CourierDashboardLite } from "@/components/courier/courier-dashboard-lite";
+import { CourierDashboard } from "@/components/courier/courier-dashboard";
 
 export default function CourierDashboardPage() {
-  return <CourierDashboardLite />;
+  return <CourierDashboard />;
 }
