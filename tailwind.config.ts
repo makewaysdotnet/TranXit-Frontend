@@ -8,6 +8,17 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      colors: {
+        primary: '#BFF000',
+        ink: '#171721',
+        muted: '#8083A3',
+        line: '#E4E6E8',
+        canvas: '#FBFBFF',
+      },
+      fontFamily: {
+        sans: ['Uber Move', 'Avenir', 'Arial', 'sans-serif'],
+        display: ['Glendale', 'Uber Move', 'Arial', 'sans-serif'],
+      },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic':
