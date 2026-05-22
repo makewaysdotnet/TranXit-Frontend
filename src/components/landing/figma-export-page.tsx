@@ -4,14 +4,14 @@
 import Link from "next/link";
 import { useState } from "react";
 
-type FigmaImage = {
+export type FigmaImage = {
   alt: string;
   height: number;
   src: string;
   width: number;
 };
 
-type Hotspot = {
+export type FigmaHotspot = {
   "aria-label": string;
   href: string;
   height: number;
@@ -20,21 +20,21 @@ type Hotspot = {
   y: number;
 };
 
-type Anchor = {
+export type FigmaAnchor = {
   id: string;
   y: number;
 };
 
-type FigmaExportPageProps = {
-  anchors?: Anchor[];
+export type FigmaExportPageProps = {
+  anchors?: FigmaAnchor[];
   desktop: FigmaImage;
-  desktopHotspots?: Hotspot[];
+  desktopHotspots?: FigmaHotspot[];
   laptop?: FigmaImage;
-  laptopHotspots?: Hotspot[];
+  laptopHotspots?: FigmaHotspot[];
   mobile: FigmaImage;
   mobileDropdown?: FigmaImage;
-  mobileDropdownHotspots?: Hotspot[];
-  mobileHotspots?: Hotspot[];
+  mobileDropdownHotspots?: FigmaHotspot[];
+  mobileHotspots?: FigmaHotspot[];
   mobileMenuButton?: {
     height: number;
     width: number;
@@ -42,7 +42,7 @@ type FigmaExportPageProps = {
     y: number;
   };
   tablet?: FigmaImage;
-  tabletHotspots?: Hotspot[];
+  tabletHotspots?: FigmaHotspot[];
 };
 
 export function FigmaExportPage({
@@ -118,9 +118,9 @@ function FigmaFrame({
   menuButton,
   onMenuButtonClick,
 }: {
-  anchors: Anchor[];
+  anchors: FigmaAnchor[];
   className?: string;
-  hotspots: Hotspot[];
+  hotspots: FigmaHotspot[];
   image: FigmaImage;
   menuButton?: {
     height: number;
