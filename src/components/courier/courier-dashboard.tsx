@@ -1,39 +1,20 @@
 "use client";
 
 import { ReactNode, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowDownRight,
-  ArrowRight,
   ArrowUpRight,
-  Bell,
-  Box,
-  BriefcaseBusiness,
-  Building2,
-  CalendarDays,
   Check,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  ClipboardCheck,
-  Copy,
-  FileUp,
-  LayoutDashboard,
   LogOut,
-  MapPin,
   Menu,
-  MessageSquare,
   MoreHorizontal,
-  PackageCheck,
-  PackageOpen,
-  Search,
   Settings,
   Sun,
-  Truck,
-  Users,
   X,
-  type LucideIcon,
 } from "lucide-react";
 import { BrandLogo } from "@/components/ui/brand-logo";
 import {
@@ -54,16 +35,17 @@ import { ShipmentStatus } from "@/lib/types";
 import { cx } from "@/lib/utils";
 
 const navItems = [
-  { href: "/courier/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/courier/jobs", label: "Jobs", icon: BriefcaseBusiness },
-  { href: "/courier/jobs/1001", label: "Tracking", icon: Truck },
-  { href: "/courier/settings", label: "Clients", icon: Users },
-  { href: "/courier/settings", label: "Messages", icon: MessageSquare },
-  { href: "/courier/settings", label: "Settings", icon: Settings },
+  { href: "/courier/dashboard", label: "Dashboard", asset: "nav-home.svg" },
+  { href: "/courier/jobs", label: "Jobs", asset: "nav-jobs.svg" },
+  { href: "/courier/jobs/1001", label: "Tracking", asset: "nav-tracking.svg" },
+  { href: "/courier/settings", label: "Clients", asset: "nav-clients.svg" },
+  { href: "/courier/settings", label: "Messages", asset: "nav-messages.svg" },
+  { href: "/courier/settings", label: "Settings", asset: "nav-settings.svg" },
 ];
 
 const visibleJobCount = 4;
 const visibleSidebarCount = 4;
+const dashboardAssetBase = "/courier/figma/dashboard";
 
 export function CourierDashboard() {
   const router = useRouter();
@@ -76,7 +58,7 @@ export function CourierDashboard() {
   const [showAllRoutes, setShowAllRoutes] = useState(false);
   const [showAllAgents, setShowAllAgents] = useState(false);
   const [showAllJobs, setShowAllJobs] = useState(false);
-  const [expandedJobId, setExpandedJobId] = useState<number | null>(dashboardJobs[0]?.id ?? null);
+  const [expandedJobId, setExpandedJobId] = useState<number | null>(null);
   const [jobMenuId, setJobMenuId] = useState<number | null>(null);
   const [trackingIndex, setTrackingIndex] = useState(0);
   const [selectedDateRange, setSelectedDateRange] = useState(dashboardDateRanges[0]);
@@ -181,7 +163,6 @@ export function CourierDashboard() {
 
         <nav className="ml-10 hidden h-full items-center gap-7 xl:flex">
           {navItems.map((item) => {
-            const Icon = item.icon;
             const active =
               item.label === "Jobs"
                 ? pathname === "/courier/dashboard" || pathname.startsWith("/courier/jobs")
@@ -197,14 +178,13 @@ export function CourierDashboard() {
                 href={item.href}
                 key={item.label}
               >
-                <span
-                  className={cx(
-                    "inline-flex h-5 w-5 items-center justify-center rounded-md bg-[#F0F1F2] text-[#B7BBC0]",
-                    active && "bg-[#DCEBFF] text-[#0F7CFF]",
-                  )}
-                >
-                  <Icon size={14} />
-                </span>
+                <FigmaAsset
+                  alt=""
+                  className={cx("h-[18px] w-[18px]", !active && "opacity-45")}
+                  height={18}
+                  name={item.asset}
+                  width={18}
+                />
                 {item.label}
               </Link>
             );
@@ -223,7 +203,7 @@ export function CourierDashboard() {
           </button>
 
           <label className="hidden h-10 min-w-[220px] items-center gap-2 rounded-lg bg-[#F3F4F5] px-3 text-sm text-[#8C8F95] lg:flex">
-            <Search size={17} />
+            <FigmaAsset alt="" height={18} name="search.svg" width={18} />
             <input
               aria-label="Search dashboard"
               className="w-full bg-transparent text-[#171721] outline-none placeholder:text-[#8C8F95]"
@@ -241,20 +221,26 @@ export function CourierDashboard() {
             onClick={() => showToast("No new notifications")}
             type="button"
           >
-            <Bell size={18} />
-            <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#BFF000]" />
+            <FigmaAsset alt="" height={18} name="notification.svg" width={18} />
+            <FigmaAsset
+              alt=""
+              className="absolute right-2 top-1.5 h-[5px] w-[5px]"
+              height={5}
+              name="sidebar-circle-mark.svg"
+              width={5}
+            />
           </button>
 
           <div className="relative">
             <button
               aria-expanded={profileOpen}
               aria-label="Open profile menu"
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-[#E4E6E8] bg-[#171721] text-sm font-bold text-white sm:h-11 sm:w-11"
+              className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-[#E4E6E8] bg-[#171721] text-sm font-bold text-white sm:h-11 sm:w-11"
               data-testid="profile-menu-trigger"
               onClick={() => setProfileOpen((open) => !open)}
               type="button"
             >
-              DK
+              <FigmaAsset alt="Dawood Khan" className="rounded-full" height={36} name="avatar.png" width={36} />
             </button>
             {profileOpen ? (
               <div className="absolute right-0 top-12 z-50 w-56 rounded-lg border border-[#E4E6E8] bg-white p-2 shadow-[0_24px_60px_-24px_rgba(23,23,33,0.45)]">
@@ -288,7 +274,7 @@ export function CourierDashboard() {
       {mobileOpen ? (
         <div className="fixed inset-x-0 top-16 z-30 max-h-[calc(100vh-64px)] overflow-y-auto border-b border-[#E4E6E8] bg-white p-4 shadow-[0_24px_60px_-32px_rgba(23,23,33,0.5)] lg:hidden">
           <label className="mb-4 flex h-10 items-center gap-2 rounded-lg bg-[#F3F4F5] px-3 text-sm text-[#8C8F95]">
-            <Search size={17} />
+            <FigmaAsset alt="" height={18} name="search.svg" width={18} />
             <input
               aria-label="Search dashboard mobile"
               className="w-full bg-transparent text-[#171721] outline-none placeholder:text-[#8C8F95]"
@@ -300,7 +286,6 @@ export function CourierDashboard() {
           </label>
           <nav className="mb-4 grid gap-1">
             {navItems.map((item) => {
-              const Icon = item.icon;
               return (
                 <Link
                   className="flex h-11 items-center gap-3 rounded-lg px-3 text-sm font-bold text-[#292C43] hover:bg-[#F5F5F5]"
@@ -308,7 +293,7 @@ export function CourierDashboard() {
                   key={item.label}
                   onClick={() => setMobileOpen(false)}
                 >
-                  <Icon size={17} />
+                  <FigmaAsset alt="" height={18} name={item.asset} width={18} />
                   {item.label}
                 </Link>
               );
@@ -347,8 +332,8 @@ export function CourierDashboard() {
         </div>
       ) : null}
 
-      <div className="flex">
-        <aside className="sticky top-16 hidden h-[calc(100vh-64px)] w-56 shrink-0 overflow-y-auto border-r border-[#E7E7E9] bg-[#F7F7F8] p-6 lg:block">
+      <div className="flex h-[calc(100vh-64px)] overflow-hidden">
+        <aside className="hidden h-full w-56 shrink-0 overflow-y-auto border-r border-[#E7E7E9] bg-[#F7F7F8] p-6 lg:block">
           <SidebarContent
             companyOpen={companyOpen}
             onCompanyOpenChange={setCompanyOpen}
@@ -361,7 +346,7 @@ export function CourierDashboard() {
           />
         </aside>
 
-        <main className="min-w-0 flex-1">
+        <main className="min-w-0 flex-1 overflow-y-auto" data-testid="dashboard-scroll-region">
           {showProfileBanner ? (
             <section className="relative border-b border-[#E4E6E8] bg-[#FAFFE9] px-4 py-4 sm:px-6 lg:px-8">
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -415,7 +400,7 @@ export function CourierDashboard() {
                   onClick={() => setDateOpen((open) => !open)}
                   type="button"
                 >
-                  <CalendarDays size={17} />
+                  <FigmaAsset alt="" height={18} name="calendar.svg" width={18} />
                   {selectedDateRange}
                   <ChevronDown size={16} />
                 </button>
@@ -524,6 +509,8 @@ export function CourierDashboard() {
             ) : (
               <SalesView />
             )}
+
+            <DashboardReports />
           </section>
         </main>
       </div>
@@ -571,8 +558,8 @@ function SidebarContent({
             onClick={() => onCompanyOpenChange(!companyOpen)}
             type="button"
           >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#FFD64D] text-[10px] font-black text-[#EF552E]">
-              DHL
+            <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full">
+              <FigmaAsset alt="DHL Courier" className="object-cover" fill name="dhl-logo.png" />
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-bold">{courierCompany.name}</span>
@@ -677,11 +664,15 @@ function RecentRouteButton({
       onClick={() => onRouteToast(`${route.from} to ${route.to} opened`)}
       type="button"
     >
-      <span className="h-3 w-3 rounded-sm bg-[#0F7CFF] [clip-path:polygon(0_0,100%_50%,0_100%)]" />
+      <FigmaAsset alt="" className="h-4 w-4" height={16} name="sidebar-route.svg" width={16} />
       <span className="truncate">{route.from}</span>
-      <ArrowRight size={13} className="text-[#0F7CFF]" />
+      <FigmaAsset alt="" className="h-3 w-3" height={12} name="sidebar-arrow-right.svg" width={12} />
       <span className="truncate">{route.to}</span>
-      <span className={cx("h-1.5 w-1.5 rounded-full", route.active ? "bg-[#BFF000]" : "bg-[#C9CCD0]")} />
+      {route.active ? (
+        <FigmaAsset alt="" className="h-[5px] w-[5px]" height={5} name="sidebar-circle-mark.svg" width={5} />
+      ) : (
+        <span className="h-[5px] w-[5px] rounded-full bg-[#C9CCD0]" />
+      )}
     </button>
   );
 }
@@ -699,11 +690,8 @@ function TeamAgentButton({
       onClick={() => onTeamToast(`${agent.name} opened`)}
       type="button"
     >
-      <span
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-black text-[#171721]"
-        style={{ backgroundColor: agent.accent }}
-      >
-        {agent.initials}
+      <span className="relative h-[22px] w-[22px] shrink-0 overflow-hidden rounded-full">
+        <FigmaAsset alt={agent.name} className="object-cover" fill name={agent.avatar} />
       </span>
       <span className="min-w-0">
         <span className="block truncate text-sm font-bold">{agent.name}</span>
@@ -718,14 +706,14 @@ function TeamAgentButton({
 function MetricCard({
   delta,
   helper,
-  icon: Icon,
+  icon,
   label,
   trend,
   value,
 }: {
   delta: string;
   helper: string;
-  icon: LucideIcon;
+  icon: string;
   label: string;
   trend: "up" | "down";
   value: string;
@@ -734,7 +722,7 @@ function MetricCard({
     <div className="rounded-lg border border-[#E4E6E8] bg-white p-4">
       <div className="flex items-start justify-between gap-3">
         <p className="text-base font-bold text-[#8C8F95]">{label}</p>
-        <Icon size={22} className="text-[#7F8184]" />
+        <FigmaAsset alt="" className="h-[22px] w-[22px]" height={22} name={icon} width={22} />
       </div>
       <div className="mt-6 flex items-end justify-between gap-3">
         <div>
@@ -775,32 +763,25 @@ function JobRequestRow({
       className="relative rounded-lg border border-[#E4E6E8] bg-white p-4 shadow-[0_14px_36px_-30px_rgba(23,23,33,0.5)]"
       data-testid={`job-row-${job.id}`}
     >
-      <div className="grid gap-3 lg:grid-cols-[24px_minmax(105px,1.2fr)_minmax(105px,1.2fr)_70px_70px_70px_66px_92px_28px] lg:items-center">
+      <div className="grid gap-3 lg:grid-cols-[24px_minmax(210px,1.45fr)_70px_70px_70px_66px_92px_28px] lg:items-center">
         <button
           aria-expanded={expanded}
           aria-label={expanded ? "Collapse job request" : "Expand job request"}
-          className="hidden h-7 w-7 items-center justify-center rounded-md text-[#A0A0A4] hover:bg-[#F5F5F5] lg:inline-flex"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-[#F5F5F5]"
           data-testid={`job-expand-${job.id}`}
           onClick={onToggle}
           type="button"
         >
-          <ChevronRight className={cx("transition", expanded && "rotate-90")} size={18} />
+          <FigmaAsset
+            alt=""
+            className={cx("h-4 w-4 transition", expanded && "rotate-90")}
+            height={16}
+            name="job-marker.svg"
+            width={16}
+          />
         </button>
 
-        <RouteCell
-          actionLabel={expanded ? "Collapse request" : "Expand request"}
-          city={job.fromCity}
-          country={job.fromCountry}
-          icon={<MapPin size={16} />}
-          label="From"
-          onAction={onToggle}
-        />
-        <RouteCell
-          city={job.toCity}
-          country={job.toCountry}
-          icon={<ArrowRight size={14} />}
-          label="Ship to"
-        />
+        <JobRouteCell job={job} />
 
         <BidCell label="Min Bid" value={job.minBid} />
         <BidCell label="Max Bid" value={job.maxBid} />
@@ -808,9 +789,7 @@ function JobRequestRow({
 
         <div>
           <p className="flex items-center gap-1 text-sm font-bold text-[#171721]">
-            <span className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#B8F7DD]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#35C996]" />
-            </span>
+            <FigmaAsset alt="" height={16} name="timer.svg" width={16} />
             {job.timeLeft}
           </p>
           <p className="mt-1 text-xs text-[#8C8F95]">Time left</p>
@@ -870,7 +849,7 @@ function JobRequestRow({
             onClick={() => onCopy(job.jobId, "Job ID")}
             type="button"
           >
-            <Copy size={14} />
+            <FigmaAsset alt="" height={14} name="copy.svg" width={14} />
           </button>
         </p>
         <p>
@@ -915,42 +894,26 @@ function JobRequestRow({
   );
 }
 
-function RouteCell({
-  actionLabel,
-  city,
-  country,
-  icon,
-  label,
-  onAction,
-}: {
-  actionLabel?: string;
-  city: string;
-  country: string;
-  icon: ReactNode;
-  label: string;
-  onAction?: () => void;
-}) {
+function JobRouteCell({ job }: { job: CourierDashboardJob }) {
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_36px] items-center gap-3">
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_23px_minmax(0,1fr)] items-center gap-3">
       <div className="min-w-0">
-        <p className="truncate text-base font-bold text-[#171721]">{city}</p>
-        <p className="mt-1 text-sm text-[#8C8F95]">{label}</p>
-        <p className="sr-only">{country}</p>
+        <p className="truncate text-sm font-bold text-[#111110]">
+          {job.fromCity}, {countryCode(job.fromCountry)}
+        </p>
+        <p className="mt-1 text-xs text-[rgba(17,17,16,0.5)]">From</p>
+        <p className="sr-only">{job.fromCountry}</p>
       </div>
-      {onAction ? (
-        <button
-          aria-label={actionLabel}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[#EEF5FF] text-[#0F7CFF] lg:hidden"
-          onClick={onAction}
-          type="button"
-        >
-          {icon}
-        </button>
-      ) : (
-        <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[#EEF5FF] text-[#0F7CFF]">
-          {icon}
-        </span>
-      )}
+      <span className="inline-flex h-[23px] w-[23px] items-center justify-center rounded-md bg-[#F0F6FC]">
+        <FigmaAsset alt="" height={12} name="job-route-arrow.svg" width={12} />
+      </span>
+      <div className="min-w-0">
+        <p className="truncate text-sm font-bold text-[#111110]">
+          {job.toCity}, {countryCode(job.toCountry)}
+        </p>
+        <p className="mt-1 text-xs text-[rgba(17,17,16,0.5)]">Ship to</p>
+        <p className="sr-only">{job.toCountry}</p>
+      </div>
     </div>
   );
 }
@@ -1027,7 +990,7 @@ function LiveTrackingPanel({
               onClick={() => onCopy(item.trackingId, "Tracking ID")}
               type="button"
             >
-              <Copy size={14} />
+              <FigmaAsset alt="" height={14} name="copy.svg" width={14} />
             </button>
           </p>
         </div>
@@ -1039,7 +1002,7 @@ function LiveTrackingPanel({
             onClick={() => onMove("previous")}
             type="button"
           >
-            <ChevronLeft size={17} />
+            <FigmaAsset alt="" height={22} name="tracking-prev.svg" width={22} />
           </button>
           <button
             aria-label="Next tracking item"
@@ -1048,15 +1011,15 @@ function LiveTrackingPanel({
             onClick={() => onMove("next")}
             type="button"
           >
-            <ChevronRight size={17} />
+            <FigmaAsset alt="" height={22} name="tracking-next.svg" width={22} />
           </button>
         </div>
       </div>
 
       <div className="mt-6 grid grid-cols-[minmax(0,1fr)_36px_minmax(0,1fr)] items-center gap-3">
-        <RouteSummary icon={<MapPin size={16} />} label="From" value={item.from} />
+        <RouteSummary icon="tracking-location.svg" label="From" value={item.from} />
         <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#EEF5FF] text-[#0F7CFF]">
-          <ArrowRight size={14} />
+          <FigmaAsset alt="" height={12} name="job-route-arrow.svg" width={12} />
         </span>
         <RouteSummary label="Ship to" value={item.to} />
         <div className="col-span-3 flex justify-end">
@@ -1072,15 +1035,13 @@ function LiveTrackingPanel({
           return (
             <div className="grid grid-cols-[24px_minmax(0,1fr)] gap-4" key={step.id}>
               <div className="flex flex-col items-center">
-                <span
-                  className={cx(
-                    "mt-1 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2",
-                    isComplete && "border-[#171721] bg-[#171721]",
-                    isCurrent && "border-[#171721] bg-white",
-                    step.state === "upcoming" && "border-[#C7C9CC] bg-[#C7C9CC]",
-                  )}
-                >
-                  {isCurrent ? <span className="h-1.5 w-1.5 rounded-full bg-[#171721]" /> : null}
+                <span className="mt-1 flex h-4 w-4 items-center justify-center">
+                  <FigmaAsset
+                    alt=""
+                    height={isCurrent ? 13 : 18}
+                    name={isCurrent ? "tracking-radio.svg" : isComplete ? "tracking-circle.svg" : "tracking-end.svg"}
+                    width={isCurrent ? 13 : 18}
+                  />
                 </span>
                 {index < item.steps.length - 1 ? (
                   <span
@@ -1107,7 +1068,6 @@ function LiveTrackingPanel({
                       onClick={() => onUpload(item)}
                       type="button"
                     >
-                      <FileUp size={15} />
                       {uploaded ? "Files uploaded" : "Upload Files"}
                     </button>
                   </>
@@ -1126,7 +1086,7 @@ function RouteSummary({
   label,
   value,
 }: {
-  icon?: ReactNode;
+  icon?: string;
   label: string;
   value: string;
 }) {
@@ -1134,13 +1094,102 @@ function RouteSummary({
     <div className="min-w-0">
       <p className="flex min-w-0 items-center gap-2 font-bold text-[#171721]">
         {icon ? (
-          <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#DCEBFF] text-[#0F7CFF]">
-            {icon}
+          <span className="inline-flex h-[22px] w-[22px] shrink-0 items-center justify-center">
+            <FigmaAsset alt="" height={22} name={icon} width={22} />
           </span>
         ) : null}
         <span className="truncate">{value}</span>
       </p>
       <p className="mt-1 text-sm text-[#8C8F95]">{label}</p>
+    </div>
+  );
+}
+
+function DashboardReports() {
+  const transactions = [
+    { id: "TX-8401", route: "Pakistan -> Jordan", date: "10 Jan 2021", amount: "$2,400", type: "Income" },
+    { id: "TX-8402", route: "Lahore -> Karachi", date: "10 Jan 2021", amount: "$1,900", type: "Income" },
+    { id: "TX-8403", route: "Pakistan -> Saudi", date: "10 Jan 2021", amount: "$3,120", type: "Expense" },
+    { id: "TX-8404", route: "Islamabad -> Rawalpindi", date: "10 Jan 2021", amount: "$860", type: "Income" },
+  ];
+
+  return (
+    <div className="grid gap-3 xl:grid-cols-2">
+      <section className="rounded-lg border border-[#E4E6E8] bg-white">
+        <div className="flex h-14 items-center justify-between border-b border-[#E4E6E8] px-6">
+          <h2 className="text-lg font-bold text-[#171721]">Income Breakdown</h2>
+          <div className="flex gap-5 text-sm font-bold text-[#AFAFAE]">
+            <button className="text-[#111110]" type="button">Week</button>
+            <button type="button">Month</button>
+            <button type="button">Year</button>
+          </div>
+        </div>
+        <div className="grid gap-6 px-6 py-8 md:grid-cols-[minmax(220px,1fr)_minmax(240px,1fr)] md:items-center">
+          <div className="relative mx-auto h-[238px] w-[278px] max-w-full">
+            <div className="absolute left-1/2 top-0 h-[202px] w-[202px] -translate-x-1/2 rounded-full bg-[conic-gradient(#BFF000_0_24%,#0067F0_24%_58%,#111110_58%_100%)]" />
+            <div className="absolute left-1/2 top-[31px] flex h-[140px] w-[140px] -translate-x-1/2 items-center justify-center rounded-full bg-white text-center">
+              <div>
+                <p className="text-[32px] font-bold leading-none text-[#111110]">$85k</p>
+                <p className="mt-1 text-xs font-bold text-[#8C8F95]">24% Mobile Apps</p>
+              </div>
+            </div>
+          </div>
+          <div className="grid gap-4 text-sm">
+            <ReportLegend color="#BFF000" label="Landing Pages" value="$22.0k" />
+            <ReportLegend color="#0067F0" label="Web Interfaces" value="$8.4k" />
+            <ReportLegend color="#111110" label="Mobile Apps" value="$18.6k" />
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-[#E4E6E8] bg-white">
+        <div className="flex h-14 items-center border-b border-[#E4E6E8] px-6">
+          <h2 className="text-lg font-bold text-[#171721]">Latest transactions</h2>
+        </div>
+        <div className="grid gap-5 px-6 py-5">
+          {transactions.map((transaction) => (
+            <div className="grid grid-cols-[106px_minmax(0,1fr)_80px] items-center gap-4" key={transaction.id}>
+              <span className="inline-flex h-[38px] items-center justify-center rounded-lg bg-[#F0F6FC] px-3 text-xs font-bold text-[#0067F0]">
+                {transaction.type}
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-[#111110]">{transaction.date}</p>
+                <p className="mt-1 flex items-center gap-2 truncate text-xs text-[#AFAFAE]">
+                  {transaction.route.split(" -> ")[0]}
+                  <FigmaAsset alt="" height={12} name="job-route-arrow.svg" width={12} />
+                  {transaction.route.split(" -> ")[1]}
+                </p>
+              </div>
+              <p className="text-right text-sm font-bold text-[#111110]">{transaction.amount}</p>
+            </div>
+          ))}
+        </div>
+        <div className="px-6 pb-5">
+          <button className="text-sm font-bold text-[#3E7EFF]" type="button">
+            View More
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function ReportLegend({
+  color,
+  label,
+  value,
+}: {
+  color: string;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center justify-between border-b border-[#E4E6E8] pb-3 last:border-b-0">
+      <span className="flex items-center gap-3 text-[#111110]">
+        <span className="h-3.5 w-3.5 rounded-sm" style={{ backgroundColor: color }} />
+        {label}
+      </span>
+      <strong>{value}</strong>
     </div>
   );
 }
@@ -1214,7 +1263,7 @@ function getDashboardMetrics() {
       helper: "Items",
       delta: "+10%",
       trend: "up" as const,
-      icon: Box,
+      icon: "counter-box.svg",
     },
     {
       label: "Won",
@@ -1222,7 +1271,7 @@ function getDashboardMetrics() {
       helper: "Job requests this month",
       delta: "+10%",
       trend: "up" as const,
-      icon: ClipboardCheck,
+      icon: "counter-judge.svg",
     },
     {
       label: "In Transit",
@@ -1230,7 +1279,7 @@ function getDashboardMetrics() {
       helper: "Jobs won this month",
       delta: "-10%",
       trend: "down" as const,
-      icon: BriefcaseBusiness,
+      icon: "counter-ship.svg",
     },
     {
       label: "Delivered",
@@ -1238,7 +1287,53 @@ function getDashboardMetrics() {
       helper: "Jobs this month",
       delta: "+10%",
       trend: "up" as const,
-      icon: PackageCheck,
+      icon: "counter-box-tick.svg",
     },
   ];
+}
+
+function FigmaAsset({
+  alt,
+  className,
+  fill = false,
+  height,
+  name,
+  width,
+}: {
+  alt: string;
+  className?: string;
+  fill?: boolean;
+  height?: number;
+  name: string;
+  width?: number;
+}) {
+  const src = `${dashboardAssetBase}/${name}`;
+
+  if (fill) {
+    return <Image alt={alt} className={className} fill sizes="44px" src={src} />;
+  }
+
+  return (
+    <Image
+      alt={alt}
+      className={className}
+      height={height ?? 16}
+      src={src}
+      width={width ?? 16}
+    />
+  );
+}
+
+function countryCode(country: string) {
+  const codes: Record<string, string> = {
+    Germany: "DE",
+    Jordan: "JD",
+    Oman: "OM",
+    Pakistan: "PK",
+    Qatar: "QA",
+    "Saudi Arabia": "SA",
+    UAE: "AE",
+  };
+
+  return codes[country] ?? country.slice(0, 2).toUpperCase();
 }

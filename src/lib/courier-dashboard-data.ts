@@ -30,10 +30,9 @@ export type RecentRoute = {
 export type TeamAgent = {
   id: number;
   name: string;
-  initials: string;
   bids: number;
   assigned: number;
-  accent: string;
+  avatar: string;
 };
 
 export type SalesSummary = {
@@ -83,12 +82,12 @@ export const recentRoutes: RecentRoute[] = [
 ];
 
 export const teamAgents: TeamAgent[] = [
-  { id: 1, name: "Arlene McCoy", initials: "AM", bids: 10, assigned: 10, accent: "#FFC83D" },
-  { id: 2, name: "Savannah Nguyen", initials: "SN", bids: 10, assigned: 10, accent: "#6ED6FF" },
-  { id: 3, name: "Annette Black", initials: "AB", bids: 10, assigned: 10, accent: "#F4D5D3" },
-  { id: 4, name: "Bessie Cooper", initials: "BC", bids: 10, assigned: 10, accent: "#CDB9FF" },
-  { id: 5, name: "Jerome Bell", initials: "JB", bids: 7, assigned: 8, accent: "#BFF000" },
-  { id: 6, name: "Wade Warren", initials: "WW", bids: 5, assigned: 6, accent: "#B9D6FF" },
+  { id: 1, name: "Arlene McCoy", bids: 10, assigned: 10, avatar: "agent-arlene.png" },
+  { id: 2, name: "Savannah Nguyen", bids: 10, assigned: 10, avatar: "agent-savannah.png" },
+  { id: 3, name: "Annette Black", bids: 10, assigned: 10, avatar: "agent-annette.png" },
+  { id: 4, name: "Bessie Cooper", bids: 10, assigned: 10, avatar: "agent-bessie.png" },
+  { id: 5, name: "Jerome Bell", bids: 7, assigned: 8, avatar: "agent-arlene.png" },
+  { id: 6, name: "Wade Warren", bids: 5, assigned: 6, avatar: "agent-savannah.png" },
 ];
 
 export const dashboardJobs: CourierDashboardJob[] = [
