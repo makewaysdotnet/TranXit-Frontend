@@ -17,6 +17,12 @@ const desktopHotspots = [
 const mobileHotspots = [
   { "aria-label": "Request a delivery", href: "/jobs/new", x: 24, y: 684, width: 327, height: 62 },
   { "aria-label": "Own a company", href: "/courier/dashboard", x: 24, y: 756, width: 327, height: 62 },
+  { "aria-label": "Register account", href: "/register", x: 24, y: 8382, width: 327, height: 45 },
+  { "aria-label": "About", href: "/about", x: 24, y: 8913, width: 327, height: 28 },
+  { "aria-label": "Explore Features", href: "/#features", x: 24, y: 8953, width: 327, height: 28 },
+  { "aria-label": "Understand TranXIT", href: "/#platform", x: 24, y: 8993, width: 327, height: 28 },
+  { "aria-label": "Our Partners", href: "/#partners", x: 24, y: 9033, width: 327, height: 28 },
+  { "aria-label": "Contact", href: "/contact", x: 24, y: 9073, width: 327, height: 28 },
 ];
 
 const tabletHotspots = [

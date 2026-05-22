@@ -29,6 +29,8 @@ type FigmaExportPageProps = {
   anchors?: Anchor[];
   desktop: FigmaImage;
   desktopHotspots?: Hotspot[];
+  laptop?: FigmaImage;
+  laptopHotspots?: Hotspot[];
   mobile: FigmaImage;
   mobileDropdown?: FigmaImage;
   mobileDropdownHotspots?: Hotspot[];
@@ -47,6 +49,8 @@ export function FigmaExportPage({
   anchors = [],
   desktop,
   desktopHotspots = [],
+  laptop,
+  laptopHotspots = [],
   mobile,
   mobileDropdown,
   mobileDropdownHotspots = [],
@@ -59,21 +63,36 @@ export function FigmaExportPage({
   const activeMobileImage = isMobileMenuOpen && mobileDropdown ? mobileDropdown : mobile;
   const activeMobileHotspots =
     isMobileMenuOpen && mobileDropdown ? mobileDropdownHotspots : mobileHotspots;
+  const tabletImage = tablet ?? laptop ?? desktop;
+  const tabletImageHotspots =
+    tablet && tabletHotspots.length > 0
+      ? tabletHotspots
+      : laptop && laptopHotspots.length > 0
+        ? laptopHotspots
+        : desktopHotspots;
 
   return (
     <main className="bg-white">
       <FigmaFrame
         anchors={anchors}
-        className="hidden lg:block"
+        className={laptop ? "hidden 2xl:block" : "hidden lg:block"}
         image={desktop}
         hotspots={desktopHotspots}
       />
-      {tablet ? (
+      {laptop ? (
+        <FigmaFrame
+          anchors={anchors}
+          className="hidden lg:block 2xl:hidden"
+          image={laptop}
+          hotspots={laptopHotspots.length > 0 ? laptopHotspots : desktopHotspots}
+        />
+      ) : null}
+      {tabletImage ? (
         <FigmaFrame
           anchors={anchors}
           className="hidden sm:block lg:hidden"
-          image={tablet}
-          hotspots={tabletHotspots.length > 0 ? tabletHotspots : desktopHotspots}
+          image={tabletImage}
+          hotspots={tabletImageHotspots}
         />
       ) : null}
       <div className="block sm:hidden">
