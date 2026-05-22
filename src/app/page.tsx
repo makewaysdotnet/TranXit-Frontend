@@ -19,6 +19,21 @@ const mobileHotspots = [
   { "aria-label": "Own a company", href: "/courier/dashboard", x: 24, y: 756, width: 327, height: 62 },
 ];
 
+const tabletHotspots = [
+  { "aria-label": "Log in", href: "/login", x: 690, y: 8, width: 58, height: 26 },
+  { "aria-label": "Request a delivery", href: "/jobs/new", x: 111, y: 333, width: 184, height: 41 },
+  { "aria-label": "Own a company", href: "/courier/dashboard", x: 111, y: 391, width: 184, height: 41 },
+];
+
+const mobileDropdownHotspots = [
+  { "aria-label": "Home", href: "/", x: 24, y: 77, width: 96, height: 48 },
+  { "aria-label": "About", href: "/about", x: 24, y: 125, width: 96, height: 48 },
+  { "aria-label": "Pricing", href: "/#pricing", x: 24, y: 173, width: 96, height: 48 },
+  { "aria-label": "Contact", href: "/contact", x: 24, y: 221, width: 110, height: 48 },
+  { "aria-label": "Request a delivery", href: "/jobs/new", x: 32, y: 649, width: 311, height: 45 },
+  { "aria-label": "Own a company", href: "/courier/dashboard", x: 32, y: 706, width: 311, height: 45 },
+];
+
 const anchors = [
   { id: "features", y: 1080 },
   { id: "platform", y: 4320 },
@@ -44,7 +59,22 @@ export default function Home() {
         src: "/landing/figma/homepage-mobile.png",
         width: 375,
       }}
+      mobileDropdown={{
+        alt: "TranXIT Homepage mobile dropdown Figma export",
+        height: 812,
+        src: "/landing/figma/homepage-mobile-dropdown.png",
+        width: 375,
+      }}
+      mobileDropdownHotspots={mobileDropdownHotspots}
       mobileHotspots={mobileHotspots}
+      mobileMenuButton={{ x: 309, y: 16, width: 42, height: 42 }}
+      tablet={{
+        alt: "TranXIT Homepage tablet Figma export",
+        height: 9126,
+        src: "/landing/figma/homepage-tablet.png",
+        width: 768,
+      }}
+      tabletHotspots={tabletHotspots}
     />
   );
 }
