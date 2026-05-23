@@ -12,6 +12,7 @@ const desktopHotspots = [
   { "aria-label": "Log in", href: "/login", x: 1768, y: 24, width: 112, height: 48 },
   { "aria-label": "Request a delivery", href: "/jobs/new", x: 289, y: 666, width: 309, height: 66 },
   { "aria-label": "Own a company", href: "/courier/dashboard", x: 610, y: 666, width: 305, height: 66 },
+  { "aria-label": "Back to top", href: "/#top", x: 92, y: 360, width: 56, height: 300 },
 ];
 
 const mobileHotspots = [

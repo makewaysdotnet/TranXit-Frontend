@@ -60,9 +60,6 @@ export function FigmaExportPage({
   tabletHotspots = [],
 }: FigmaExportPageProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const activeMobileImage = isMobileMenuOpen && mobileDropdown ? mobileDropdown : mobile;
-  const activeMobileHotspots =
-    isMobileMenuOpen && mobileDropdown ? mobileDropdownHotspots : mobileHotspots;
   const tabletImage = tablet ?? laptop ?? desktop;
   const tabletImageHotspots =
     tablet && tabletHotspots.length > 0
@@ -72,7 +69,7 @@ export function FigmaExportPage({
         : desktopHotspots;
 
   return (
-    <main className="bg-white">
+    <main className="min-h-screen overflow-y-auto bg-white" id="top">
       <FigmaFrame
         anchors={anchors}
         className={laptop ? "hidden 2xl:block" : "hidden lg:block"}
@@ -95,16 +92,26 @@ export function FigmaExportPage({
           hotspots={tabletImageHotspots}
         />
       ) : null}
-      <div className="block sm:hidden">
+      <div className="relative block sm:hidden">
         <FigmaFrame
           anchors={anchors}
-          image={activeMobileImage}
-          hotspots={activeMobileHotspots}
+          image={mobile}
+          hotspots={isMobileMenuOpen ? [] : mobileHotspots}
           menuButton={mobileMenuButton}
           onMenuButtonClick={
             mobileDropdown ? () => setIsMobileMenuOpen((value) => !value) : undefined
           }
         />
+        {isMobileMenuOpen && mobileDropdown ? (
+          <FigmaFrame
+            className="absolute inset-x-0 top-0 z-20"
+            anchors={[]}
+            image={mobileDropdown}
+            hotspots={mobileDropdownHotspots}
+            menuButton={mobileMenuButton}
+            onMenuButtonClick={() => setIsMobileMenuOpen(false)}
+          />
+        ) : null}
       </div>
     </main>
   );
@@ -130,9 +137,14 @@ function FigmaFrame({
   };
   onMenuButtonClick?: () => void;
 }) {
+  const reservedHeight = `calc(min(100vw, ${image.width}px) * ${image.height / image.width})`;
+
   return (
     <div className={className ?? ""}>
-      <div className="relative mx-auto w-full max-w-[1920px]">
+      <div
+        className="relative mx-auto w-full max-w-[1920px]"
+        style={{ minHeight: reservedHeight }}
+      >
         <img
           alt={image.alt}
           className="block h-auto w-full select-none"
