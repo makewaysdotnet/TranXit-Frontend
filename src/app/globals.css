@@ -52,17 +52,15 @@
 html {
   min-height: 100%;
   overflow-x: hidden;
-  overflow-y: auto;
 }
 
 body {
-  min-height: 100%;
+  min-height: 100vh;
   margin: 0;
   background: var(--tranxit-surface);
   color: var(--tranxit-ink);
   font-family: "Uber Move", "Avenir", Arial, sans-serif;
   overflow-x: hidden;
-  overflow-y: auto;
 }
 
 .font-display {
