@@ -75,6 +75,7 @@ export default function Home() {
       mobileDropdownHotspots={mobileDropdownHotspots}
       mobileHotspots={mobileHotspots}
       mobileMenuButton={{ x: 309, y: 16, width: 42, height: 42 }}
+      resetScrollOnMount
       tablet={{
         alt: "TranXIT Homepage tablet Figma export",
         height: 9126,

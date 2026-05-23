@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export type FigmaImage = {
   alt: string;
@@ -41,6 +41,7 @@ export type FigmaExportPageProps = {
     x: number;
     y: number;
   };
+  resetScrollOnMount?: boolean;
   tablet?: FigmaImage;
   tabletHotspots?: FigmaHotspot[];
 };
@@ -56,6 +57,7 @@ export function FigmaExportPage({
   mobileDropdownHotspots = [],
   mobileHotspots = [],
   mobileMenuButton,
+  resetScrollOnMount = false,
   tablet,
   tabletHotspots = [],
 }: FigmaExportPageProps) {
@@ -67,6 +69,21 @@ export function FigmaExportPage({
       : laptop && laptopHotspots.length > 0
         ? laptopHotspots
         : desktopHotspots;
+
+  useEffect(() => {
+    if (!resetScrollOnMount || window.location.hash) {
+      return;
+    }
+
+    const previousScrollRestoration = window.history.scrollRestoration;
+    window.history.scrollRestoration = "manual";
+    const frame = window.requestAnimationFrame(() => window.scrollTo(0, 0));
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.history.scrollRestoration = previousScrollRestoration;
+    };
+  }, [resetScrollOnMount]);
 
   return (
     <main className="min-h-screen bg-white" id="top">
