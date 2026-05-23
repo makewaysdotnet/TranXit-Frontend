@@ -69,7 +69,7 @@ export function FigmaExportPage({
         : desktopHotspots;
 
   return (
-    <main className="min-h-screen overflow-y-auto bg-white" id="top">
+    <main className="min-h-screen bg-white" id="top">
       <FigmaFrame
         anchors={anchors}
         className={laptop ? "hidden 2xl:block" : "hidden lg:block"}
@@ -147,7 +147,7 @@ function FigmaFrame({
       >
         <img
           alt={image.alt}
-          className="block h-auto w-full select-none"
+          className="pointer-events-none block h-auto w-full select-none"
           draggable={false}
           height={image.height}
           src={image.src}
