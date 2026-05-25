@@ -1,5 +1,5 @@
-import { CourierOnboardingScreen } from "@/components/onboarding/courier-onboarding-screen";
+import { redirect } from "next/navigation";
 
 export default function RegisterDetailsPage() {
-  return <CourierOnboardingScreen screen="registerDetails" />;
+  redirect("/register");
 }

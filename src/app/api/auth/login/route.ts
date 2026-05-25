@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { loginRequest } from "@/lib/api";
 import { ApiResult, LoginResponse } from "@/lib/types";
 
+const demoAuthEnabled = process.env.TRANXIT_ENABLE_DEMO_AUTH === "true";
+
 const demoUsers: Record<string, LoginResponse> = {
   "customer@tranxit.local": {
     id: 1,
@@ -31,18 +33,31 @@ export async function POST(request: Request) {
   try {
     result = await loginRequest(body.email, body.password);
   } catch {
-    const demo = demoUsers[String(body.email).toLowerCase()];
-    result =
-      demo && body.password === "Password1!"
-        ? { isSuccess: true, value: demo }
-        : { isSuccess: false, error: ["Unable to reach local backend"] };
+    if (demoAuthEnabled) {
+      const demo = demoUsers[String(body.email).toLowerCase()];
+      result =
+        demo && body.password === "Password1!"
+          ? { isSuccess: true, value: demo }
+          : { isSuccess: false, error: ["Unable to reach local backend"] };
+    } else {
+      result = { isSuccess: false, error: ["Unable to reach local backend"] };
+    }
   }
 
   if (!result.isSuccess || !result.value) {
     return NextResponse.json(result, { status: 400 });
   }
 
-  const token = result.value.token || "demo-token";
+  const token = result.value.token;
+  if (!token) {
+    return NextResponse.json(
+      { isSuccess: false, error: ["Authentication token was not returned"] },
+      { status: 400 },
+    );
+  }
+
+  const role =
+    result.value.role || (result.value.roleId === 2 ? "Courier" : "Customer");
   const cookieStore = await cookies();
 
   cookieStore.set("tranxit_session", token, {
@@ -52,7 +67,8 @@ export async function POST(request: Request) {
     path: "/",
     maxAge: 60 * 60 * 24 * 7,
   });
-  cookieStore.set("tranxit_role", result.value.role || "Customer", {
+  cookieStore.set("tranxit_role", role, {
+    httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
