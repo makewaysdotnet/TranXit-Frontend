@@ -96,3 +96,19 @@ export async function createJobRequest(input: unknown, token?: string) {
     token,
   });
 }
+
+export async function createBidRequest(input: unknown, token?: string) {
+  return apiRequest<{ bidId: number }>("/api/bids", {
+    method: "POST",
+    body: JSON.stringify(input),
+    token,
+  });
+}
+
+export async function updateBidStatusRequest(input: unknown, token?: string) {
+  return apiRequest<{ bidId: number }>("/api/bids/status", {
+    method: "PUT",
+    body: JSON.stringify(input),
+    token,
+  });
+}

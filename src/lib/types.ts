@@ -36,6 +36,7 @@ export type ShipmentItem = {
 
 export type BidOffer = {
   id: number;
+  proposalId?: number;
   courierName: string;
   label: string;
   total: string;

@@ -1,9 +1,14 @@
+"use client";
+
+import { useState } from "react";
 import { AppShell } from "@/components/dashboard/app-shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { TextField } from "@/components/ui/input";
 
 export default function CourierSettingsPage() {
+  const [saved, setSaved] = useState(false);
+
   return (
     <AppShell role="courier">
       <section className="grid gap-6">
@@ -23,7 +28,14 @@ export default function CourierSettingsPage() {
             <TextField label="Primary lane" defaultValue="Pakistan -> EU" />
             <TextField label="Insurance policy" defaultValue="Cargo loss/damage coverage" />
           </div>
-          <Button className="mt-6">Save business settings</Button>
+          {saved ? (
+            <p className="mt-5 rounded-lg bg-[#ECFBF6] p-3 text-sm font-medium text-[#0D8F65]">
+              Business settings saved locally.
+            </p>
+          ) : null}
+          <Button className="mt-6" onClick={() => setSaved(true)}>
+            Save business settings
+          </Button>
         </Card>
       </section>
     </AppShell>
