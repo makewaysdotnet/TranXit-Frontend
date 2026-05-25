@@ -157,6 +157,8 @@ export type BackendJobDetail = {
 
 export type BackendJobBid = {
   bidId: number;
+  bidProposalId?: number | null;
+  bidProposalIds?: number[];
   bidMinOffer: number;
   courierName: string;
   courierId: number;

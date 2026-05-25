@@ -19,7 +19,7 @@ import { BackendJobStats } from "@/lib/types";
 const demoDataEnabled = process.env.TRANXIT_ENABLE_DEMO_DATA === "true";
 
 async function loadCourierDashboard() {
-  const { token } = await getServerAuth();
+  const { token, userName } = await getServerAuth();
 
   if (!token) {
     return {
@@ -27,6 +27,7 @@ async function loadCourierDashboard() {
       routes: [],
       trackingItems: [],
       stats: null as BackendJobStats | null,
+      user: null,
     };
   }
 
@@ -42,6 +43,7 @@ async function loadCourierDashboard() {
         routes: demoDataEnabled ? demoRecentRoutes : [],
         trackingItems: demoDataEnabled ? demoTrackingItems : [],
         stats: statsResult.value || null,
+        user: userName ? { name: userName, companyName: userName } : null,
       };
     }
 
@@ -52,6 +54,7 @@ async function loadCourierDashboard() {
       routes: mapRecentRoutes(jobs),
       trackingItems: mapTrackingItems(jobs),
       stats: statsResult.isSuccess ? statsResult.value || null : null,
+      user: userName ? { name: userName, companyName: userName } : null,
     };
   } catch {
     return {
@@ -59,12 +62,13 @@ async function loadCourierDashboard() {
       routes: demoDataEnabled ? demoRecentRoutes : [],
       trackingItems: demoDataEnabled ? demoTrackingItems : [],
       stats: null as BackendJobStats | null,
+      user: userName ? { name: userName, companyName: userName } : null,
     };
   }
 }
 
 export default async function CourierDashboardPage() {
-  const { jobs, routes, trackingItems, stats } = await loadCourierDashboard();
+  const { jobs, routes, trackingItems, stats, user } = await loadCourierDashboard();
 
   return (
     <CourierDashboard
@@ -72,6 +76,7 @@ export default async function CourierDashboardPage() {
       routes={routes}
       stats={stats}
       trackingItems={trackingItems}
+      user={user}
     />
   );
 }
