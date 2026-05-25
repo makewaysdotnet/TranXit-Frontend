@@ -1,9 +1,20 @@
-import { ApiResult, LoginResponse } from "./types";
+import {
+  ApiResult,
+  BackendCourierJob,
+  BackendCustomerJob,
+  BackendJobBid,
+  BackendJobDetail,
+  BackendJobStats,
+  DeliveryTypeOption,
+  DropdownOption,
+  LoginResponse,
+  Pagination,
+} from "./types";
 
 const API_BASE =
   process.env.TRANXIT_API_URL ||
   process.env.NEXT_PUBLIC_TRANXIT_API_URL ||
-  "http://localhost:61260";
+  "http://localhost:8088";
 
 type RequestOptions = RequestInit & {
   token?: string;
@@ -97,6 +108,48 @@ export async function createJobRequest(input: unknown, token?: string) {
   });
 }
 
+export async function getCountriesRequest(token?: string) {
+  return apiRequest<DropdownOption[]>("/api/countries", {
+    method: "GET",
+    token,
+  });
+}
+
+export async function getCitiesRequest(countryId: number, token?: string) {
+  return apiRequest<DropdownOption[]>(`/api/cities/${countryId}`, {
+    method: "GET",
+    token,
+  });
+}
+
+export async function getCargoModesRequest(token?: string) {
+  return apiRequest<DropdownOption[]>("/api/shipment-types", {
+    method: "GET",
+    token,
+  });
+}
+
+export async function getCourierModesRequest(token?: string) {
+  return apiRequest<DropdownOption[]>("/api/courier-modes", {
+    method: "GET",
+    token,
+  });
+}
+
+export async function getItemTypesRequest(token?: string) {
+  return apiRequest<DropdownOption[]>("/api/item-types", {
+    method: "GET",
+    token,
+  });
+}
+
+export async function getDeliveryTypesRequest(token?: string) {
+  return apiRequest<DeliveryTypeOption[]>("/api/delivery-types", {
+    method: "GET",
+    token,
+  });
+}
+
 export async function createBidRequest(input: unknown, token?: string) {
   return apiRequest<{ bidId: number }>("/api/bids", {
     method: "POST",
@@ -109,6 +162,52 @@ export async function updateBidStatusRequest(input: unknown, token?: string) {
   return apiRequest<{ bidId: number }>("/api/bids/status", {
     method: "PUT",
     body: JSON.stringify(input),
+    token,
+  });
+}
+
+export async function getCustomerJobsRequest(customerId: number, token?: string) {
+  return apiRequest<BackendCustomerJob[]>(`/api/jobs/${customerId}`, {
+    method: "GET",
+    token,
+  });
+}
+
+export async function getJobDetailRequest(jobId: number, token?: string) {
+  return apiRequest<BackendJobDetail>(`/api/jobs/${jobId}/details`, {
+    method: "GET",
+    token,
+  });
+}
+
+export async function getJobBidsRequest(
+  jobId: number,
+  page = 1,
+  pageSize = 20,
+  token?: string,
+) {
+  return apiRequest<Pagination<BackendJobBid>>(
+    `/api/bids/${jobId}?page=${page}&pageSize=${pageSize}`,
+    {
+      method: "GET",
+      token,
+    },
+  );
+}
+
+export async function getCourierJobsRequest(page = 1, pageSize = 20, token?: string) {
+  return apiRequest<Pagination<BackendCourierJob>>(
+    `/api/jobs?page=${page}&pageSize=${pageSize}`,
+    {
+      method: "GET",
+      token,
+    },
+  );
+}
+
+export async function getCourierJobStatsRequest(token?: string) {
+  return apiRequest<BackendJobStats>("/api/jobs/stats", {
+    method: "GET",
     token,
   });
 }

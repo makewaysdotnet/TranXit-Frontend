@@ -8,7 +8,13 @@ import { AuthFrame } from "@/components/auth/auth-frame";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/input";
 
-export function VerifyEmailPanel({ initialEmail = "" }: { initialEmail?: string }) {
+export function VerifyEmailPanel({
+  initialEmail = "",
+  developmentCode = "",
+}: {
+  initialEmail?: string;
+  developmentCode?: string;
+}) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -69,9 +75,15 @@ export function VerifyEmailPanel({ initialEmail = "" }: { initialEmail?: string 
           inputMode="numeric"
           maxLength={6}
           pattern="[0-9]{6}"
-          placeholder="000000"
+          placeholder={developmentCode || "000000"}
+          defaultValue={developmentCode}
           required
         />
+        {developmentCode ? (
+          <p className="rounded-lg bg-[#F5F5FA] p-3 text-sm font-medium text-[#595D62]">
+            Local verification code: <span className="font-bold text-[#171721]">{developmentCode}</span>
+          </p>
+        ) : null}
         {error ? (
           <p className="rounded-lg bg-[#FFF0EF] p-3 text-sm font-medium text-[#EB5E55]">
             {error}

@@ -20,9 +20,6 @@ import { BrandLogo } from "@/components/ui/brand-logo";
 import {
   courierCompany,
   dashboardDateRanges,
-  dashboardJobs,
-  liveTrackingItems,
-  recentRoutes,
   salesSummary,
   salesTransactions,
   teamAgents,
@@ -31,7 +28,8 @@ import {
   type RecentRoute,
   type TeamAgent,
 } from "@/lib/courier-dashboard-data";
-import { ShipmentStatus } from "@/lib/types";
+import { mapCourierStats } from "@/lib/live-data";
+import { BackendJobStats, ShipmentStatus } from "@/lib/types";
 import { cx } from "@/lib/utils";
 
 const navItems = [
@@ -47,7 +45,19 @@ const visibleJobCount = 4;
 const visibleSidebarCount = 4;
 const dashboardAssetBase = "/courier/figma/dashboard";
 
-export function CourierDashboard() {
+type CourierDashboardProps = {
+  jobs?: CourierDashboardJob[];
+  stats?: BackendJobStats | null;
+  routes?: RecentRoute[];
+  trackingItems?: LiveTrackingItem[];
+};
+
+export function CourierDashboard({
+  jobs = [],
+  stats = null,
+  routes = [],
+  trackingItems = [],
+}: CourierDashboardProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [activeTab, setActiveTab] = useState<"jobs" | "sales">("jobs");
@@ -72,10 +82,10 @@ export function CourierDashboard() {
     const query = search.trim().toLowerCase();
 
     if (!query) {
-      return dashboardJobs;
+      return jobs;
     }
 
-    return dashboardJobs.filter((job) => {
+    return jobs.filter((job) => {
       const searchable = [
         job.customer,
         job.fromCity,
@@ -92,11 +102,11 @@ export function CourierDashboard() {
 
       return searchable.includes(query);
     });
-  }, [search]);
+  }, [jobs, search]);
 
   const displayedJobs = showAllJobs ? filteredJobs : filteredJobs.slice(0, visibleJobCount);
-  const trackingItem = liveTrackingItems[trackingIndex];
-  const dashboardMetrics = useMemo(() => getDashboardMetrics(), []);
+  const trackingItem = trackingItems[trackingIndex];
+  const dashboardMetrics = useMemo(() => mapCourierStats(stats, jobs), [jobs, stats]);
 
   const logout = async () => {
     setLoggingOut(true);
@@ -128,12 +138,16 @@ export function CourierDashboard() {
   };
 
   const selectTracking = (direction: "previous" | "next") => {
+    if (trackingItems.length === 0) {
+      return;
+    }
+
     setTrackingIndex((current) => {
       if (direction === "previous") {
-        return current === 0 ? liveTrackingItems.length - 1 : current - 1;
+        return current === 0 ? trackingItems.length - 1 : current - 1;
       }
 
-      return current === liveTrackingItems.length - 1 ? 0 : current + 1;
+      return current === trackingItems.length - 1 ? 0 : current + 1;
     });
   };
 
@@ -304,6 +318,7 @@ export function CourierDashboard() {
             onCompanyOpenChange={setCompanyOpen}
             onRouteToast={showToast}
             onTeamToast={showToast}
+            routes={routes}
             showAllAgents={showAllAgents}
             showAllRoutes={showAllRoutes}
             onShowAllAgentsChange={setShowAllAgents}
@@ -339,6 +354,7 @@ export function CourierDashboard() {
             onCompanyOpenChange={setCompanyOpen}
             onRouteToast={showToast}
             onTeamToast={showToast}
+            routes={routes}
             showAllAgents={showAllAgents}
             showAllRoutes={showAllRoutes}
             onShowAllAgentsChange={setShowAllAgents}
@@ -497,14 +513,24 @@ export function CourierDashboard() {
                   </div>
                 </section>
 
-                <LiveTrackingPanel
-                  currentIndex={trackingIndex}
-                  item={trackingItem}
-                  onCopy={copyText}
-                  onMove={selectTracking}
-                  onUpload={uploadFiles}
-                  uploaded={uploadedTrackingIds.includes(trackingItem.trackingId)}
-                />
+                {trackingItem ? (
+                  <LiveTrackingPanel
+                    currentIndex={trackingIndex}
+                    item={trackingItem}
+                    onCopy={copyText}
+                    onMove={selectTracking}
+                    onUpload={uploadFiles}
+                    totalCount={trackingItems.length}
+                    uploaded={uploadedTrackingIds.includes(trackingItem.trackingId)}
+                  />
+                ) : (
+                  <aside className="rounded-lg border border-dashed border-[#D6D7DA] bg-white p-8 text-center">
+                    <p className="text-sm font-bold text-[#171721]">No live tracking yet</p>
+                    <p className="mt-1 text-sm text-[#8C8F95]">
+                      Accepted and in-transit jobs will appear here.
+                    </p>
+                  </aside>
+                )}
               </div>
             ) : (
               <SalesView />
@@ -529,6 +555,7 @@ function SidebarContent({
   onCompanyOpenChange,
   onRouteToast,
   onTeamToast,
+  routes,
   showAllAgents,
   showAllRoutes,
   onShowAllAgentsChange,
@@ -538,12 +565,13 @@ function SidebarContent({
   onCompanyOpenChange: (open: boolean) => void;
   onRouteToast: (message: string) => void;
   onTeamToast: (message: string) => void;
+  routes: RecentRoute[];
   showAllAgents: boolean;
   showAllRoutes: boolean;
   onShowAllAgentsChange: (open: boolean) => void;
   onShowAllRoutesChange: (open: boolean) => void;
 }) {
-  const visibleRoutes = showAllRoutes ? recentRoutes : recentRoutes.slice(0, visibleSidebarCount);
+  const visibleRoutes = showAllRoutes ? routes : routes.slice(0, visibleSidebarCount);
   const visibleAgents = showAllAgents ? teamAgents : teamAgents.slice(0, visibleSidebarCount);
 
   return (
@@ -961,6 +989,7 @@ function LiveTrackingPanel({
   onCopy,
   onMove,
   onUpload,
+  totalCount,
   uploaded,
 }: {
   currentIndex: number;
@@ -968,6 +997,7 @@ function LiveTrackingPanel({
   onCopy: (value: string, label: string) => void;
   onMove: (direction: "previous" | "next") => void;
   onUpload: (item: LiveTrackingItem) => void;
+  totalCount: number;
   uploaded: boolean;
 }) {
   return (
@@ -975,7 +1005,7 @@ function LiveTrackingPanel({
       <div className="mb-7 flex items-center justify-between">
         <h2 className="text-lg font-bold text-[#171721]">Live Tracking</h2>
         <p className="text-sm text-[#595D62]">
-          {currentIndex + 1}/{liveTrackingItems.length}
+          {currentIndex + 1}/{totalCount}
         </p>
       </div>
 
@@ -1249,47 +1279,6 @@ function SalesView() {
       </aside>
     </div>
   );
-}
-
-function getDashboardMetrics() {
-  const won = dashboardJobs.filter((job) => job.status === "Won").length + 21;
-  const inTransit = dashboardJobs.filter((job) => job.status === "InTransit").length + 9;
-  const delivered = dashboardJobs.filter((job) => job.status === "Delivered").length + 120;
-
-  return [
-    {
-      label: "Total Shipments",
-      value: String(dashboardJobs.length + 115),
-      helper: "Items",
-      delta: "+10%",
-      trend: "up" as const,
-      icon: "counter-box.svg",
-    },
-    {
-      label: "Won",
-      value: String(won),
-      helper: "Job requests this month",
-      delta: "+10%",
-      trend: "up" as const,
-      icon: "counter-judge.svg",
-    },
-    {
-      label: "In Transit",
-      value: String(inTransit),
-      helper: "Jobs won this month",
-      delta: "-10%",
-      trend: "down" as const,
-      icon: "counter-ship.svg",
-    },
-    {
-      label: "Delivered",
-      value: String(delivered),
-      helper: "Jobs this month",
-      delta: "+10%",
-      trend: "up" as const,
-      icon: "counter-box-tick.svg",
-    },
-  ];
 }
 
 function FigmaAsset({

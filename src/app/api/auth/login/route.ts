@@ -74,6 +74,13 @@ export async function POST(request: Request) {
     path: "/",
     maxAge: 60 * 60 * 24 * 7,
   });
+  cookieStore.set("tranxit_user_id", String(result.value.id), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7,
+  });
 
   return NextResponse.json(result);
 }
