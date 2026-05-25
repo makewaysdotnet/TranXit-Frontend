@@ -1,10 +1,59 @@
+"use client";
+
 import { Bell, Building2, CreditCard, UserRound } from "lucide-react";
 import { AppShell } from "@/components/dashboard/app-shell";
 import { Card } from "@/components/ui/card";
 import { TextField } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
+
+const sections = [
+  {
+    label: "Profile",
+    icon: UserRound,
+    fields: [
+      ["Name", "Ayesha Khan"],
+      ["Email", "customer@tranxit.local"],
+      ["Phone", "+92 300 0000001"],
+      ["Default city", "Karachi"],
+    ],
+  },
+  {
+    label: "Company",
+    icon: Building2,
+    fields: [
+      ["Company name", "Khan Textiles"],
+      ["Tax identifier", "TX-448201"],
+      ["Default origin", "Port Qasim"],
+      ["Billing email", "finance@khantextiles.example"],
+    ],
+  },
+  {
+    label: "Notifications",
+    icon: Bell,
+    fields: [
+      ["Bid alerts", "Email and in-app"],
+      ["Shipment updates", "Every status change"],
+      ["Weekly reports", "Monday morning"],
+      ["Escalation contact", "+92 300 0000001"],
+    ],
+  },
+  {
+    label: "Billing",
+    icon: CreditCard,
+    fields: [
+      ["Payment method", "Invoice"],
+      ["Currency", "PKR"],
+      ["Billing cycle", "Monthly"],
+      ["PO required", "Yes"],
+    ],
+  },
+];
 
 export default function SettingsPage() {
+  const [activeSection, setActiveSection] = useState(sections[0]);
+  const [saved, setSaved] = useState(false);
+
   return (
     <AppShell>
       <section className="grid gap-6">
@@ -18,33 +67,43 @@ export default function SettingsPage() {
         </div>
         <div className="grid gap-6 xl:grid-cols-[280px_1fr]">
           <Card className="h-fit p-3">
-            {[
-              ["Profile", UserRound],
-              ["Company", Building2],
-              ["Notifications", Bell],
-              ["Billing", CreditCard],
-            ].map(([label, Icon]) => {
-              const ItemIcon = Icon as typeof UserRound;
+            {sections.map((section) => {
+              const ItemIcon = section.icon;
+              const isActive = section.label === activeSection.label;
               return (
                 <button
-                  key={label as string}
-                  className="flex h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-bold text-[#595D62] hover:bg-[#F5F5FA]"
+                  key={section.label}
+                  className={`flex h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-bold ${
+                    isActive
+                      ? "bg-[#171721] text-white"
+                      : "text-[#595D62] hover:bg-[#F5F5FA]"
+                  }`}
+                  onClick={() => {
+                    setActiveSection(section);
+                    setSaved(false);
+                  }}
                 >
                   <ItemIcon size={17} />
-                  {label as string}
+                  {section.label}
                 </button>
               );
             })}
           </Card>
           <Card className="p-5">
-            <h2 className="text-xl font-bold">Profile</h2>
+            <h2 className="text-xl font-bold">{activeSection.label}</h2>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <TextField label="Name" defaultValue="Ayesha Khan" />
-              <TextField label="Email" defaultValue="customer@tranxit.local" />
-              <TextField label="Phone" defaultValue="+92 300 0000001" />
-              <TextField label="Default city" defaultValue="Karachi" />
+              {activeSection.fields.map(([label, value]) => (
+                <TextField key={label} label={label} defaultValue={value} />
+              ))}
             </div>
-            <Button className="mt-6">Save changes</Button>
+            {saved ? (
+              <p className="mt-5 rounded-lg bg-[#ECFBF6] p-3 text-sm font-medium text-[#0D8F65]">
+                Changes saved locally.
+              </p>
+            ) : null}
+            <Button className="mt-6" onClick={() => setSaved(true)}>
+              Save changes
+            </Button>
           </Card>
         </div>
       </section>

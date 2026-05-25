@@ -7,14 +7,76 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { SelectField, TextAreaField, TextField } from "@/components/ui/input";
 
+function numberFromText(value: FormDataEntryValue | null) {
+  return Number(String(value || "").replace(/[^0-9.]/g, "")) || 0;
+}
+
 export function JobRequestForm() {
   const router = useRouter();
-  const [submitted, setSubmitted] = useState(false);
+  const [status, setStatus] = useState<"idle" | "draft" | "submitting" | "submitted">(
+    "idle",
+  );
+  const [error, setError] = useState("");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSubmitted(true);
-    setTimeout(() => router.push("/jobs/1001/bids"), 450);
+    setError("");
+    setStatus("submitting");
+
+    const form = new FormData(event.currentTarget);
+    const payload = {
+      courierModeId: 1,
+      cargoModeId: 1,
+      itemTypeId: 1,
+      originCountryId: 1,
+      destinationCountryId: 2,
+      originCityId: 1,
+      destinationCityId: 2,
+      originAddress: String(form.get("originAddress")),
+      destinationAddress: String(form.get("destinationAddress")),
+      recipientName: String(form.get("recipientName")),
+      recipientEmail: String(form.get("recipientEmail")),
+      recipientContact: String(form.get("recipientContact")),
+      pickupDateUtc: form.get("pickupDate")
+        ? new Date(String(form.get("pickupDate"))).toISOString()
+        : null,
+      jobItems: [
+        {
+          itemName: String(form.get("itemName")),
+          quantity: numberFromText(form.get("quantity")),
+          weight: numberFromText(form.get("weight")),
+          declaredValue: numberFromText(form.get("declaredValue")),
+          itemTypeId: 1,
+          description: String(form.get("description")),
+        },
+      ],
+    };
+
+    let response: Response;
+    let result;
+
+    try {
+      response = await fetch("/api/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      result = await response.json();
+    } catch {
+      setStatus("idle");
+      setError("Unable to create the shipment request right now.");
+      return;
+    }
+
+    if (!response.ok || !result.isSuccess) {
+      setStatus("idle");
+      setError((result.error || result.errors || ["Unable to create job"]).join(", "));
+      return;
+    }
+
+    setStatus("submitted");
+    const jobId = result.value?.jobId || result.value?.JobId || 1001;
+    router.push(`/jobs/${jobId}/bids`);
   }
 
   return (
@@ -39,6 +101,9 @@ export function JobRequestForm() {
             <TextField label="Destination city" name="destinationCity" defaultValue="Hamburg" />
             <TextField label="Origin address" name="originAddress" defaultValue="Warehouse 12, Port Qasim" />
             <TextField label="Destination address" name="destinationAddress" defaultValue="Hamburg port terminal" />
+            <TextField label="Recipient name" name="recipientName" defaultValue="Jamal Meyer" />
+            <TextField label="Recipient email" name="recipientEmail" type="email" defaultValue="jamal@example.com" />
+            <TextField label="Recipient contact" name="recipientContact" defaultValue="+49 40 000000" />
           </div>
         </Card>
 
@@ -110,12 +175,31 @@ export function JobRequestForm() {
           <p className="mt-2 text-sm text-[#8083A3]">
             Final quote calculates after courier companies submit bid offers.
           </p>
+          {error ? (
+            <p className="mt-4 rounded-lg bg-[#FFF0EF] p-3 text-sm font-medium text-[#EB5E55]">
+              {error}
+            </p>
+          ) : null}
+          {status === "draft" ? (
+            <p className="mt-4 rounded-lg bg-[#F5F5FA] p-3 text-sm font-medium text-[#595D62]">
+              Draft saved locally.
+            </p>
+          ) : null}
           <div className="mt-5 grid gap-3">
-            <Button type="button" variant="secondary" icon={<Save size={16} />}>
+            <Button
+              type="button"
+              variant="secondary"
+              icon={<Save size={16} />}
+              onClick={() => setStatus("draft")}
+            >
               Save draft
             </Button>
-            <Button type="submit" icon={<ArrowRight size={16} />}>
-              {submitted ? "Request sent" : "Confirm & request bids"}
+            <Button
+              type="submit"
+              disabled={status === "submitting"}
+              icon={<ArrowRight size={16} />}
+            >
+              {status === "submitting" ? "Sending..." : "Confirm & request bids"}
             </Button>
           </div>
         </Card>
