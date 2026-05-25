@@ -8,6 +8,15 @@ const demoAuthEnabled = process.env.TRANXIT_ENABLE_DEMO_AUTH === "true";
 export async function POST(request: Request) {
   const body = await request.json();
   let result: ApiResult<LoginResponse>;
+  const requestedRole =
+    body.role === "Courier" ? "Courier" : body.role === "Customer" ? "Customer" : null;
+
+  if (!requestedRole) {
+    return NextResponse.json(
+      { isSuccess: false, error: ["Choose Customer or Courier"] },
+      { status: 400 },
+    );
+  }
 
   try {
     result = await registerRequest(body);
@@ -16,11 +25,10 @@ export async function POST(request: Request) {
       result = {
         isSuccess: true,
         value: {
-          id: body.roleId === 2 ? 2 : 1,
+          id: 0,
           name: body.username,
           email: body.email,
-          role: body.roleId === 2 ? "Courier" : "Customer",
-          roleId: body.roleId,
+          role: requestedRole,
           isEmailVerified: false,
         },
       };
@@ -31,8 +39,14 @@ export async function POST(request: Request) {
 
   if (result.isSuccess && result.value) {
     const cookieStore = await cookies();
-    const role =
-      result.value.role || (result.value.roleId === 2 ? "Courier" : "Customer");
+    const role = result.value.role;
+    if (!role) {
+      return NextResponse.json(
+        { isSuccess: false, error: ["Role was not returned"] },
+        { status: 400 },
+      );
+    }
+
     cookieStore.set("tranxit_pending_email", result.value.email || body.email, {
       httpOnly: true,
       sameSite: "lax",
