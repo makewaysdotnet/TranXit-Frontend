@@ -63,6 +63,32 @@ export async function registerRequest(input: {
   });
 }
 
+export async function sendVerificationCodeRequest(email: string) {
+  return apiRequest<boolean>("/api/send-code", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function verifyEmailCodeRequest(input: { email: string; code: string }) {
+  return apiRequest<boolean>("/api/verify-code", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function resetPasswordRequest(input: {
+  email: string;
+  code: string;
+  password: string;
+  confirmPassword: string;
+}) {
+  return apiRequest<boolean>("/api/reset-password", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 export async function createJobRequest(input: unknown, token?: string) {
   return apiRequest<{ jobId: number }>("/api/jobs", {
     method: "POST",

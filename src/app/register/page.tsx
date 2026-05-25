@@ -1,5 +1,10 @@
-import { CourierOnboardingScreen } from "@/components/onboarding/courier-onboarding-screen";
+import { AuthPanel } from "@/components/auth/auth-panel";
 
 export default function RegisterPage() {
-  return <CourierOnboardingScreen screen="registerStart" />;
+  return (
+    <AuthPanel
+      mode="register"
+      demoAuthEnabled={process.env.TRANXIT_ENABLE_DEMO_AUTH === "true"}
+    />
+  );
 }

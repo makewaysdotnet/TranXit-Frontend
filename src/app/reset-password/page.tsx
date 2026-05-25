@@ -1,5 +1,9 @@
-import { CourierOnboardingScreen } from "@/components/onboarding/courier-onboarding-screen";
+import { cookies } from "next/headers";
+import { ResetPasswordPanel } from "@/components/auth/password-reset-panels";
 
-export default function ResetPasswordPage() {
-  return <CourierOnboardingScreen screen="resetPassword" />;
+export default async function ResetPasswordPage() {
+  const cookieStore = await cookies();
+  const resetEmail = cookieStore.get("tranxit_reset_email")?.value || "";
+
+  return <ResetPasswordPanel initialEmail={resetEmail} />;
 }
