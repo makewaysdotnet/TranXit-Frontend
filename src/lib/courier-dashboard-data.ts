@@ -66,10 +66,10 @@ export const courierCompany = {
 };
 
 export const dashboardDateRanges = [
-  "1 Feb - 1 Apr 2021",
   "Last 30 days",
   "This month",
   "This quarter",
+  "This year",
 ];
 
 export const recentRoutes: RecentRoute[] = [

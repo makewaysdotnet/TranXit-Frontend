@@ -4,6 +4,15 @@ import { loginRequest } from "@/lib/api";
 import { ApiResult, LoginResponse } from "@/lib/types";
 
 const demoAuthEnabled = process.env.TRANXIT_ENABLE_DEMO_AUTH === "true";
+const authCookieNames = [
+  "tranxit_session",
+  "tranxit_role",
+  "tranxit_user_id",
+  "tranxit_user_name",
+  "tranxit_pending_email",
+  "tranxit_pending_role",
+  "tranxit_dev_verification_code",
+];
 
 const demoUsers: Record<string, LoginResponse> = {
   "customer@tranxit.local": {
@@ -63,6 +72,15 @@ export async function POST(request: Request) {
   }
 
   const cookieStore = await cookies();
+  for (const name of authCookieNames) {
+    cookieStore.set(name, "", {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 0,
+    });
+  }
 
   cookieStore.set("tranxit_session", token, {
     httpOnly: true,
@@ -79,6 +97,13 @@ export async function POST(request: Request) {
     maxAge: 60 * 60 * 24 * 7,
   });
   cookieStore.set("tranxit_user_id", String(result.value.id), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7,
+  });
+  cookieStore.set("tranxit_user_name", encodeURIComponent(result.value.name || result.value.email), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",

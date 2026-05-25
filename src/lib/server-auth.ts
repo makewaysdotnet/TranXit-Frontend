@@ -5,10 +5,13 @@ export async function getServerAuth() {
   const token = cookieStore.get("tranxit_session")?.value;
   const role = cookieStore.get("tranxit_role")?.value;
   const userId = Number(cookieStore.get("tranxit_user_id")?.value);
+  const encodedUserName = cookieStore.get("tranxit_user_name")?.value;
+  const userName = encodedUserName ? decodeURIComponent(encodedUserName) : null;
 
   return {
     token,
     role,
     userId: Number.isInteger(userId) && userId > 0 ? userId : null,
+    userName,
   };
 }

@@ -50,6 +50,11 @@ type CourierDashboardProps = {
   stats?: BackendJobStats | null;
   routes?: RecentRoute[];
   trackingItems?: LiveTrackingItem[];
+  user?: {
+    name: string;
+    companyName?: string;
+    location?: string;
+  } | null;
 };
 
 export function CourierDashboard({
@@ -57,6 +62,7 @@ export function CourierDashboard({
   stats = null,
   routes = [],
   trackingItems = [],
+  user = null,
 }: CourierDashboardProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -107,6 +113,10 @@ export function CourierDashboard({
   const displayedJobs = showAllJobs ? filteredJobs : filteredJobs.slice(0, visibleJobCount);
   const trackingItem = trackingItems[trackingIndex];
   const dashboardMetrics = useMemo(() => mapCourierStats(stats, jobs), [jobs, stats]);
+  const userName = user?.name || "Courier";
+  const firstName = userName.split(" ")[0] || userName;
+  const companyName = user?.companyName || userName;
+  const companyLocation = user?.location || courierCompany.location;
 
   const logout = async () => {
     setLoggingOut(true);
@@ -254,12 +264,12 @@ export function CourierDashboard({
               onClick={() => setProfileOpen((open) => !open)}
               type="button"
             >
-              <FigmaAsset alt="Dawood Khan" className="rounded-full" height={36} name="avatar.png" width={36} />
+              <FigmaAsset alt={userName} className="rounded-full" height={36} name="avatar.png" width={36} />
             </button>
             {profileOpen ? (
               <div className="absolute right-0 top-12 z-50 w-56 rounded-lg border border-[#E4E6E8] bg-white p-2 shadow-[0_24px_60px_-24px_rgba(23,23,33,0.45)]">
                 <div className="border-b border-[#F0F0F1] px-3 py-2">
-                  <p className="text-sm font-bold">Dawood Khan</p>
+                  <p className="text-sm font-bold">{userName}</p>
                   <p className="text-xs text-[#8C8F95]">Courier admin</p>
                 </div>
                 <Link
@@ -319,6 +329,8 @@ export function CourierDashboard({
             onRouteToast={showToast}
             onTeamToast={showToast}
             routes={routes}
+            companyName={companyName}
+            companyLocation={companyLocation}
             showAllAgents={showAllAgents}
             showAllRoutes={showAllRoutes}
             onShowAllAgentsChange={setShowAllAgents}
@@ -355,6 +367,8 @@ export function CourierDashboard({
             onRouteToast={showToast}
             onTeamToast={showToast}
             routes={routes}
+            companyName={companyName}
+            companyLocation={companyLocation}
             showAllAgents={showAllAgents}
             showAllRoutes={showAllRoutes}
             onShowAllAgentsChange={setShowAllAgents}
@@ -403,7 +417,7 @@ export function CourierDashboard({
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div>
                 <h1 className="text-3xl font-bold tracking-normal text-[#171721] sm:text-[34px]">
-                  Welcome, Dawood
+                  Welcome, {firstName}
                 </h1>
                 <p className="mt-1 text-base text-[#A0A0A4]">Check out latest updates</p>
               </div>
@@ -551,6 +565,8 @@ export function CourierDashboard({
 }
 
 function SidebarContent({
+  companyLocation,
+  companyName,
   companyOpen,
   onCompanyOpenChange,
   onRouteToast,
@@ -561,6 +577,8 @@ function SidebarContent({
   onShowAllAgentsChange,
   onShowAllRoutesChange,
 }: {
+  companyLocation: string;
+  companyName: string;
   companyOpen: boolean;
   onCompanyOpenChange: (open: boolean) => void;
   onRouteToast: (message: string) => void;
@@ -587,11 +605,11 @@ function SidebarContent({
             type="button"
           >
             <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full">
-              <FigmaAsset alt="DHL Courier" className="object-cover" fill name="dhl-logo.png" />
+              <FigmaAsset alt={companyName} className="object-cover" fill name="dhl-logo.png" />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-bold">{courierCompany.name}</span>
-              <span className="block truncate text-xs text-[#8C8F95]">{courierCompany.location}</span>
+              <span className="block truncate text-sm font-bold">{companyName}</span>
+              <span className="block truncate text-xs text-[#8C8F95]">{companyLocation}</span>
             </span>
             <ChevronDown
               className={cx("shrink-0 text-[#A0A0A4] transition", companyOpen && "rotate-180")}
@@ -600,7 +618,7 @@ function SidebarContent({
           </button>
           {companyOpen ? (
             <div className="absolute left-0 top-14 z-20 w-full rounded-lg border border-[#E4E6E8] bg-white p-2 shadow-[0_18px_40px_-24px_rgba(23,23,33,0.45)]">
-              {["DHL Courier", "TranXIT Express", "Portside Logistics"].map((company) => (
+              {[companyName, "TranXIT Express", "Portside Logistics"].map((company) => (
                 <button
                   className="flex h-9 w-full items-center rounded-lg px-2 text-left text-xs font-bold hover:bg-[#F5F5F5]"
                   key={company}

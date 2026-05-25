@@ -5,18 +5,28 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { SelectField, TextAreaField, TextField } from "@/components/ui/input";
-import { CourierJob } from "@/lib/types";
+import { CourierJob, DeliveryTypeOption } from "@/lib/types";
 
 function numberFromText(value: FormDataEntryValue | null) {
   return Number(String(value || "").replace(/[^0-9.]/g, "")) || 0;
 }
 
-export function CourierBidForm({ job }: { job: CourierJob }) {
+export function CourierBidForm({
+  deliveryTypes,
+  job,
+}: {
+  deliveryTypes: DeliveryTypeOption[];
+  job: CourierJob;
+}) {
   const router = useRouter();
   const [status, setStatus] = useState<"idle" | "draft" | "submitting" | "submitted">(
     "idle",
   );
   const [error, setError] = useState("");
+  const deliveryOptions =
+    deliveryTypes.length > 0
+      ? deliveryTypes
+      : [{ id: 2, name: "Standard", noOfDays: 18 }];
 
   const proposalTotal = useMemo(
     () => ({
@@ -39,6 +49,7 @@ export function CourierBidForm({ job }: { job: CourierJob }) {
     const pickupCharges = numberFromText(form.get("pickupCharges"));
     const handlingCharges = numberFromText(form.get("handlingCharges"));
     const customClearanceCharges = numberFromText(form.get("customClearanceCharges"));
+    const deliveryTypeId = Number(form.get("deliveryTypeId")) || deliveryOptions[0].id;
 
     let response: Response;
     let result;
@@ -62,7 +73,7 @@ export function CourierBidForm({ job }: { job: CourierJob }) {
           ],
           bidProposals: [
             {
-              deliveryTypeId: 2,
+              deliveryTypeId,
               isBaseBid: true,
               deliveryDate,
               total: proposalTotal.amount,
@@ -96,16 +107,22 @@ export function CourierBidForm({ job }: { job: CourierJob }) {
           <TextField label="Origin handling" name="handlingCharges" defaultValue="185000" />
           <TextField label="Customs clearance" name="customClearanceCharges" defaultValue="95000" />
           <TextField label="Pickup charges" name="pickupCharges" defaultValue="110000" />
-          <SelectField label="Delivery type" name="deliveryType" defaultValue="Standard">
-            <option>Economy</option>
-            <option>Standard</option>
-            <option>Express</option>
+          <SelectField
+            label="Delivery type"
+            name="deliveryTypeId"
+            defaultValue={String(deliveryOptions[0].id)}
+          >
+            {deliveryOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.name}
+              </option>
+            ))}
           </SelectField>
           <TextField label="Delivery date" name="deliveryDate" type="date" />
           <TextAreaField
             label="Proposal notes"
             name="notes"
-            defaultValue="Door-to-door quote includes origin handling, export filings, ocean freight, and Hamburg terminal support."
+            defaultValue="Door-to-door quote includes origin handling, export filings, freight, and terminal support."
             className="md:col-span-3"
           />
         </div>

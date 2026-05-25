@@ -177,7 +177,7 @@ export function mapBidToOffer(bid: BackendJobBid, detail?: BackendJobDetail): Bi
 
   return {
     id: bid.bidId,
-    proposalId: bid.bidId,
+    proposalId: bid.bidProposalId ?? bid.bidProposalIds?.[0],
     courierName: bid.courierName || `Courier #${bid.courierId}`,
     label: `Bid offer #${bid.bidId}`,
     total: formatMoney(bid.bidMinOffer),

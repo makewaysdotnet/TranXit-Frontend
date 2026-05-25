@@ -12,6 +12,12 @@ export function BidOfferCard({ bid }: { bid: BidOffer }) {
 
   async function acceptBid() {
     setError("");
+
+    if (!bid.proposalId) {
+      setError("Bid proposal was not returned for this offer.");
+      return;
+    }
+
     setStatus("accepting");
 
     let response: Response;
@@ -23,7 +29,7 @@ export function BidOfferCard({ bid }: { bid: BidOffer }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           bidId: bid.id,
-          bidProposalId: bid.proposalId || bid.id,
+          bidProposalId: bid.proposalId,
           status: 3,
         }),
       });

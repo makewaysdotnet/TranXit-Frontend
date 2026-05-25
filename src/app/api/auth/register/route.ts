@@ -4,6 +4,15 @@ import { registerRequest } from "@/lib/api";
 import { ApiResult, LoginResponse } from "@/lib/types";
 
 const demoAuthEnabled = process.env.TRANXIT_ENABLE_DEMO_AUTH === "true";
+const authCookieNames = [
+  "tranxit_session",
+  "tranxit_role",
+  "tranxit_user_id",
+  "tranxit_user_name",
+  "tranxit_pending_email",
+  "tranxit_pending_role",
+  "tranxit_dev_verification_code",
+];
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -45,6 +54,16 @@ export async function POST(request: Request) {
         { isSuccess: false, error: ["Role was not returned"] },
         { status: 400 },
       );
+    }
+
+    for (const name of authCookieNames) {
+      cookieStore.set(name, "", {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        maxAge: 0,
+      });
     }
 
     cookieStore.set("tranxit_pending_email", result.value.email || body.email, {
