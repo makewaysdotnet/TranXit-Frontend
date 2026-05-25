@@ -47,6 +47,19 @@ export async function POST(request: Request) {
       path: "/",
       maxAge: 60 * 30,
     });
+    if (result.value.developmentVerificationCode && process.env.NODE_ENV !== "production") {
+      cookieStore.set(
+        "tranxit_dev_verification_code",
+        result.value.developmentVerificationCode,
+        {
+          httpOnly: true,
+          sameSite: "lax",
+          secure: false,
+          path: "/",
+          maxAge: 60 * 30,
+        },
+      );
+    }
   }
 
   return NextResponse.json(result, { status: result.isSuccess ? 200 : 400 });
