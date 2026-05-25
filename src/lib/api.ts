@@ -9,6 +9,7 @@ import {
   DropdownOption,
   LoginResponse,
   Pagination,
+  RoleOption,
 } from "./types";
 
 const API_BASE =
@@ -66,11 +67,17 @@ export async function registerRequest(input: {
   confirmPassword: string;
   username: string;
   phone: string;
-  roleId?: number;
+  role?: string;
 }) {
   return apiRequest<LoginResponse>("/api/register", {
     method: "POST",
     body: JSON.stringify(input),
+  });
+}
+
+export async function getRolesRequest() {
+  return apiRequest<RoleOption[]>("/api/roles", {
+    method: "GET",
   });
 }
 

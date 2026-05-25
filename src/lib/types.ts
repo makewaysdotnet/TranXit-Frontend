@@ -25,6 +25,11 @@ export type DropdownOption = {
   description?: string | null;
 };
 
+export type RoleOption = {
+  id: number;
+  name: UserRole;
+};
+
 export type DeliveryTypeOption = DropdownOption & {
   noOfDays?: number | null;
 };

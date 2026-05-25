@@ -11,7 +11,6 @@ const demoUsers: Record<string, LoginResponse> = {
     name: "Ayesha Khan",
     email: "customer@tranxit.local",
     role: "Customer",
-    roleId: 1,
     token: "demo-customer-token",
     isEmailVerified: true,
   },
@@ -20,7 +19,6 @@ const demoUsers: Record<string, LoginResponse> = {
     name: "TranXIT Courier Co.",
     email: "courier@tranxit.local",
     role: "Courier",
-    roleId: 2,
     token: "demo-courier-token",
     isEmailVerified: true,
   },
@@ -56,8 +54,14 @@ export async function POST(request: Request) {
     );
   }
 
-  const role =
-    result.value.role || (result.value.roleId === 2 ? "Courier" : "Customer");
+  const role = result.value.role;
+  if (!role) {
+    return NextResponse.json(
+      { isSuccess: false, error: ["Role was not returned"] },
+      { status: 400 },
+    );
+  }
+
   const cookieStore = await cookies();
 
   cookieStore.set("tranxit_session", token, {
