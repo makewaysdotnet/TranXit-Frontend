@@ -73,16 +73,10 @@ jobs:
 
       - name: Backend stack diagnostics
         if: failure()
-        working-directory: ${{ env.TRANXIT_BACKEND_DIR }}
         run: |
-          echo "::group::docker compose ps"
-          docker compose -p tranxit-e2e-ci -f docker-compose.test.yml ps -a 2>&1 | tee backend-stack-ps.log || true
-          echo "::endgroup::"
-          echo "::group::docker compose logs"
-          docker compose -p tranxit-e2e-ci -f docker-compose.test.yml logs --no-color --timestamps --tail=400 2>&1 | tee backend-stack.log || true
-          echo "::endgroup::"
+          npm run e2e:stack:logs 2>&1 | tee e2e-stack-diagnostics.log || true
           echo "::group::docker version"
-          { docker version || true; docker compose version || true; } 2>&1 | tee backend-stack-docker.log || true
+          { docker version || true; docker compose version || true; } 2>&1 | tee e2e-docker-version.log || true
           echo "::endgroup::"
 
       - name: Stop backend test stack

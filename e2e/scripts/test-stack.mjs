@@ -20,6 +20,8 @@ const composeArgs =
   action === "up"
     ? [
         "compose",
+        "--progress",
+        "plain",
         "-p",
         projectName,
         "-f",
@@ -82,11 +84,39 @@ async function waitForGateway() {
 }
 
 async function dumpComposeDiagnostics() {
-  await runDocker(["compose", "-p", projectName, "-f", composeFile, "ps", "-a"], true);
-  await runDocker(
-    ["compose", "-p", projectName, "-f", composeFile, "logs", "--no-color", "--tail", "200"],
-    true,
-  );
+  await runDiagnosticGroup("docker compose ps", [
+    "compose",
+    "-p",
+    projectName,
+    "-f",
+    composeFile,
+    "ps",
+    "-a",
+  ]);
+  await runDiagnosticGroup("docker compose logs", [
+    "compose",
+    "-p",
+    projectName,
+    "-f",
+    composeFile,
+    "logs",
+    "--no-color",
+    "--tail",
+    "200",
+  ]);
+}
+
+async function runDiagnosticGroup(name, args) {
+  const useGroup = process.env.GITHUB_ACTIONS === "true";
+  if (useGroup) {
+    console.log(`::group::${name}`);
+  }
+
+  await runDocker(args, true);
+
+  if (useGroup) {
+    console.log("::endgroup::");
+  }
 }
 
 function runDocker(args, alwaysPrint = false) {
