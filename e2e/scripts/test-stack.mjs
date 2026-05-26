@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { apiUrl, backendRoot, e2eEnv, projectName } from "./env.mjs";
 
 const action = process.argv[2];
@@ -125,25 +125,39 @@ async function runDiagnosticGroup(name, args) {
   }
 }
 
-function runDocker(args, alwaysPrint = false) {
+function runDocker(args) {
   const command = `docker ${args.join(" ")}`;
   console.log(`$ ${command}`);
 
-  const result = spawnSync("docker", args, {
-    cwd: backendRoot,
-    env: e2eEnv(),
-    stdio: "inherit",
+  return new Promise((resolve) => {
+    let settled = false;
+    const child = spawn("docker", args, {
+      cwd: backendRoot,
+      env: e2eEnv(),
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const heartbeat = setInterval(() => {
+      console.log(`Still running: ${command}`);
+    }, 15_000);
+
+    child.stdout.on("data", (chunk) => process.stdout.write(chunk));
+    child.stderr.on("data", (chunk) => process.stderr.write(chunk));
+    child.on("error", (error) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearInterval(heartbeat);
+      console.error(`Failed to run ${command}:`, error);
+      resolve({ status: 1 });
+    });
+    child.on("close", (code, signal) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearInterval(heartbeat);
+      resolve({ status: code ?? (signal === "SIGPIPE" ? 13 : 1) });
+    });
   });
-
-  const status = result.status ?? (result.signal === "SIGPIPE" ? 13 : 1);
-  if (alwaysPrint && status === 0) {
-    return { status };
-  }
-
-  if (result.error) {
-    console.error(`Failed to run ${command}:`, result.error);
-    return { status: 1 };
-  }
-
-  return { status };
 }
