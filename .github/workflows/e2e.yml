@@ -1,0 +1,75 @@
+name: Frontend E2E
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  frontend-e2e:
+    name: frontend-e2e
+    runs-on: ubuntu-latest
+    env:
+      TRANXIT_BACKEND_DIR: ${{ github.workspace }}/TranXIT-Backend/TranXit
+      TRANXIT_E2E_FRONTEND_PORT: "3100"
+      TRANXIT_E2E_GATEWAY_PORT: "18188"
+      TRANXIT_E2E_SQL_PORT: "11488"
+      TRANXIT_E2E_RABBITMQ_PORT: "25688"
+      TRANXIT_E2E_RABBITMQ_MANAGEMENT_PORT: "25689"
+      TRANXIT_E2E_PROJECT_NAME: tranxit-e2e-ci
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:3100
+      NEXT_PUBLIC_TRANXIT_API_URL: http://127.0.0.1:18188
+      TRANXIT_API_URL: http://127.0.0.1:18188
+      TRANXIT_E2E_EXPOSE_DEV_CODE: "true"
+    steps:
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+
+      - name: Checkout backend test stack
+        uses: actions/checkout@v4
+        with:
+          repository: makewaysdotnet/TranXIT-Backend
+          ref: feature/web-first-mvp
+          path: TranXIT-Backend
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Verify Docker
+        run: docker info
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Start backend test stack
+        run: npm run e2e:stack:up
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build frontend for E2E
+        run: npm run build:e2e
+
+      - name: Run Playwright E2E
+        run: npm run e2e:test
+
+      - name: Stop backend test stack
+        if: always()
+        run: npm run e2e:stack:down
+
+      - name: Upload Playwright artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
