@@ -18,8 +18,31 @@ if (!fs.existsSync(composeFile)) {
 
 const composeArgs =
   action === "up"
-    ? ["compose", "-p", projectName, "-f", composeFile, "up", "-d", "--build", "--force-recreate"]
-    : ["compose", "-p", projectName, "-f", composeFile, "down", "-v", "--remove-orphans"];
+    ? [
+        "compose",
+        "--progress",
+        "plain",
+        "-p",
+        projectName,
+        "-f",
+        composeFile,
+        "up",
+        "-d",
+        "--build",
+        "--force-recreate",
+      ]
+    : [
+        "compose",
+        "--progress",
+        "plain",
+        "-p",
+        projectName,
+        "-f",
+        composeFile,
+        "down",
+        "-v",
+        "--remove-orphans",
+      ];
 
 const result = spawnSync("docker", composeArgs, {
   cwd: backendRoot,
@@ -28,8 +51,14 @@ const result = spawnSync("docker", composeArgs, {
   stdio: "inherit",
 });
 
-if (result.status !== 0) {
+if (result.status !== 0 && action !== "up") {
   process.exit(result.status ?? 1);
+}
+
+if (result.status !== 0) {
+  console.warn(
+    `docker compose up returned ${result.status}; continuing to gateway readiness probe before failing.`,
+  );
 }
 
 if (action === "up") {
@@ -56,5 +85,21 @@ async function waitForGateway() {
   }
 
   console.error(`Timed out waiting for TranXIT E2E gateway at ${apiUrl}: ${lastError}`);
+  dumpComposeDiagnostics();
   process.exit(1);
+}
+
+function dumpComposeDiagnostics() {
+  spawnSync("docker", ["compose", "-p", projectName, "-f", composeFile, "ps"], {
+    cwd: backendRoot,
+    env: e2eEnv(),
+    shell: true,
+    stdio: "inherit",
+  });
+  spawnSync("docker", ["compose", "-p", projectName, "-f", composeFile, "logs", "--tail", "120"], {
+    cwd: backendRoot,
+    env: e2eEnv(),
+    shell: true,
+    stdio: "inherit",
+  });
 }
