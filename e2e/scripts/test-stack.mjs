@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { apiUrl, backendRoot, e2eEnv, projectName } from "./env.mjs";
 
 const action = process.argv[2];
@@ -44,7 +44,7 @@ const composeArgs =
         "--remove-orphans",
       ];
 
-const result = runDocker(composeArgs);
+const result = await runDocker(composeArgs);
 
 if (result.status !== 0 && action !== "up") {
   process.exit(result.status ?? 1);
@@ -80,33 +80,67 @@ async function waitForGateway() {
   }
 
   console.error(`Timed out waiting for TranXIT E2E gateway at ${apiUrl}: ${lastError}`);
-  dumpComposeDiagnostics();
+  await dumpComposeDiagnostics();
   process.exit(1);
 }
 
-function dumpComposeDiagnostics() {
-  runDocker(["compose", "-p", projectName, "-f", composeFile, "ps"], true);
-  runDocker(["compose", "-p", projectName, "-f", composeFile, "logs", "--tail", "120"], true);
+async function dumpComposeDiagnostics() {
+  await runDocker(["compose", "-p", projectName, "-f", composeFile, "ps"], true);
+  await runDocker(["compose", "-p", projectName, "-f", composeFile, "logs", "--tail", "120"], true);
 }
 
 function runDocker(args, alwaysPrint = false) {
-  const command = `docker ${args.join(" ")}`;
-  const result = spawnSync("docker", args, {
-    cwd: backendRoot,
-    env: e2eEnv(),
-    encoding: "utf8",
-    maxBuffer: 1024 * 1024 * 100,
-  });
+	const command = `docker ${args.join(" ")}`;
+	return new Promise((resolve) => {
+		let stdout = "";
+		let stderr = "";
+		const maxBufferedOutput = 1024 * 1024 * 8;
+		const child = spawn("docker", args, {
+			cwd: backendRoot,
+			env: e2eEnv(),
+		});
 
-  if (alwaysPrint || result.status !== 0) {
-    console.log(`$ ${command}`);
-    if (result.stdout) {
-      console.log(result.stdout);
-    }
-    if (result.stderr) {
-      console.error(result.stderr);
-    }
-  }
+		const heartbeat = setInterval(() => {
+			console.log(`Still running: ${command}`);
+		}, 20_000);
 
-  return result;
+		child.stdout.on("data", (chunk) => {
+			const text = chunk.toString();
+			if (alwaysPrint) {
+				process.stdout.write(text);
+				return;
+			}
+			stdout = (stdout + text).slice(-maxBufferedOutput);
+		});
+
+		child.stderr.on("data", (chunk) => {
+			const text = chunk.toString();
+			if (alwaysPrint) {
+				process.stderr.write(text);
+				return;
+			}
+			stderr = (stderr + text).slice(-maxBufferedOutput);
+		});
+
+		child.on("error", (error) => {
+			clearInterval(heartbeat);
+			console.error(`Failed to run ${command}:`, error);
+			resolve({ status: 1 });
+		});
+
+		child.on("close", (code, signal) => {
+			clearInterval(heartbeat);
+			const status = code ?? (signal === "SIGPIPE" ? 13 : 1);
+			if (alwaysPrint || status !== 0) {
+				console.log(`$ ${command}`);
+				if (stdout) {
+					console.log(stdout);
+				}
+				if (stderr) {
+					console.error(stderr);
+				}
+			}
+			resolve({ status });
+		});
+	});
 }
