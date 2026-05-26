@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { spawn } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { apiUrl, backendRoot, e2eEnv, projectName } from "./env.mjs";
 
 const action = process.argv[2];
@@ -126,57 +126,29 @@ async function runDiagnosticGroup(name, args) {
 }
 
 function runDocker(args, alwaysPrint = false) {
-	const command = `docker ${args.join(" ")}`;
-	return new Promise((resolve) => {
-		let stdout = "";
-		let stderr = "";
-		const maxBufferedOutput = 1024 * 1024 * 8;
-		const child = spawn("docker", args, {
-			cwd: backendRoot,
-			env: e2eEnv(),
-		});
+  const command = `docker ${args.join(" ")}`;
+  const result = spawnSync("docker", args, {
+    cwd: backendRoot,
+    env: e2eEnv(),
+    encoding: "utf8",
+    maxBuffer: 1024 * 1024 * 64,
+  });
 
-		const heartbeat = setInterval(() => {
-			console.log(`Still running: ${command}`);
-		}, 20_000);
+  const status = result.status ?? (result.signal === "SIGPIPE" ? 13 : 1);
+  if (alwaysPrint || status !== 0) {
+    console.log(`$ ${command}`);
+    if (result.stdout) {
+      console.log(result.stdout);
+    }
+    if (result.stderr) {
+      console.error(result.stderr);
+    }
+  }
 
-		child.stdout.on("data", (chunk) => {
-			const text = chunk.toString();
-			if (alwaysPrint) {
-				process.stdout.write(text);
-				return;
-			}
-			stdout = (stdout + text).slice(-maxBufferedOutput);
-		});
+  if (result.error) {
+    console.error(`Failed to run ${command}:`, result.error);
+    return { status: 1 };
+  }
 
-		child.stderr.on("data", (chunk) => {
-			const text = chunk.toString();
-			if (alwaysPrint) {
-				process.stderr.write(text);
-				return;
-			}
-			stderr = (stderr + text).slice(-maxBufferedOutput);
-		});
-
-		child.on("error", (error) => {
-			clearInterval(heartbeat);
-			console.error(`Failed to run ${command}:`, error);
-			resolve({ status: 1 });
-		});
-
-		child.on("close", (code, signal) => {
-			clearInterval(heartbeat);
-			const status = code ?? (signal === "SIGPIPE" ? 13 : 1);
-			if (alwaysPrint || status !== 0) {
-				console.log(`$ ${command}`);
-				if (stdout) {
-					console.log(stdout);
-				}
-				if (stderr) {
-					console.error(stderr);
-				}
-			}
-			resolve({ status });
-		});
-	});
+  return { status };
 }
