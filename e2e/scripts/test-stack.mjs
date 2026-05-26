@@ -94,7 +94,6 @@ function runDocker(args, alwaysPrint = false) {
   const result = spawnSync("docker", args, {
     cwd: backendRoot,
     env: e2eEnv(),
-    shell: true,
     encoding: "utf8",
     maxBuffer: 1024 * 1024 * 100,
   });
