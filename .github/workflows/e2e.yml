@@ -27,11 +27,21 @@ jobs:
       - name: Checkout frontend
         uses: actions/checkout@v4
 
+      - name: Resolve backend ref
+        id: backend-ref
+        run: |
+          candidate="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+          if git ls-remote --exit-code --heads https://github.com/makewaysdotnet/TranXIT-Backend.git "$candidate" >/dev/null; then
+            echo "ref=$candidate" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=feature/web-first-mvp" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout backend test stack
         uses: actions/checkout@v4
         with:
           repository: makewaysdotnet/TranXIT-Backend
-          ref: feature/web-first-mvp
+          ref: ${{ steps.backend-ref.outputs.ref }}
           path: TranXIT-Backend
 
       - name: Setup Node 20
