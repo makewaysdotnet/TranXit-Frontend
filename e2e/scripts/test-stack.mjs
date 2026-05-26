@@ -10,14 +10,19 @@ process.on("SIGPIPE", () => {
   console.warn("Ignoring Docker Compose SIGPIPE; gateway readiness decides E2E stack success.");
 });
 
-if (!["up", "down", "logs"].includes(action)) {
-  console.error("Usage: node e2e/scripts/test-stack.mjs <up|down|logs>");
+if (!["up", "down", "logs", "ready"].includes(action)) {
+  console.error("Usage: node e2e/scripts/test-stack.mjs <up|down|logs|ready>");
   process.exit(1);
 }
 
 if (!fs.existsSync(composeFile)) {
   console.error(`Missing backend compose file: ${composeFile}`);
   process.exit(1);
+}
+
+if (action === "ready") {
+  await waitForGateway();
+  process.exit(0);
 }
 
 const composeArgs =

@@ -94,7 +94,18 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Start backend test stack
-        run: npm run e2e:stack:up
+        run: |
+          set +e
+          npm run e2e:stack:up
+          status=$?
+          set -e
+
+          if [ "$status" -eq 13 ]; then
+            echo "::warning::Backend stack startup exited 13 after Compose startup; validating gateway readiness before failing."
+            npm run e2e:stack:ready
+          elif [ "$status" -ne 0 ]; then
+            exit "$status"
+          fi
 
       - name: Lint
         run: npm run lint
