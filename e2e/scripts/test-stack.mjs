@@ -6,8 +6,8 @@ import { apiUrl, backendRoot, e2eEnv, projectName } from "./env.mjs";
 const action = process.argv[2];
 const composeFile = path.join(backendRoot, "docker-compose.test.yml");
 
-if (!["up", "down"].includes(action)) {
-  console.error("Usage: node e2e/scripts/test-stack.mjs <up|down>");
+if (!["up", "down", "logs"].includes(action)) {
+  console.error("Usage: node e2e/scripts/test-stack.mjs <up|down|logs>");
   process.exit(1);
 }
 
@@ -20,8 +20,6 @@ const composeArgs =
   action === "up"
     ? [
         "compose",
-        "--progress",
-        "plain",
         "-p",
         projectName,
         "-f",
@@ -29,7 +27,6 @@ const composeArgs =
         "up",
         "-d",
         "--build",
-        "--force-recreate",
       ]
     : [
         "compose",
@@ -44,16 +41,16 @@ const composeArgs =
         "--remove-orphans",
       ];
 
-const result = await runDocker(composeArgs);
-
-if (result.status !== 0 && action !== "up") {
-  process.exit(result.status ?? 1);
+if (action === "logs") {
+  await dumpComposeDiagnostics();
+  process.exit(0);
 }
 
+const result = await runDocker(composeArgs);
+
 if (result.status !== 0) {
-  console.warn(
-    `docker compose up returned ${result.status}; continuing to gateway readiness probe before failing.`,
-  );
+  await dumpComposeDiagnostics();
+  process.exit(result.status ?? 1);
 }
 
 if (action === "up") {
@@ -85,8 +82,11 @@ async function waitForGateway() {
 }
 
 async function dumpComposeDiagnostics() {
-  await runDocker(["compose", "-p", projectName, "-f", composeFile, "ps"], true);
-  await runDocker(["compose", "-p", projectName, "-f", composeFile, "logs", "--tail", "120"], true);
+  await runDocker(["compose", "-p", projectName, "-f", composeFile, "ps", "-a"], true);
+  await runDocker(
+    ["compose", "-p", projectName, "-f", composeFile, "logs", "--no-color", "--tail", "200"],
+    true,
+  );
 }
 
 function runDocker(args, alwaysPrint = false) {
