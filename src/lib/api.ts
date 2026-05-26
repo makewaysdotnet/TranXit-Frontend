@@ -44,10 +44,11 @@ export async function apiRequest<T>(
     return {
       isSuccess: false,
       error: payload.error || payload.errors || [response.statusText],
+      status: response.status,
     };
   }
 
-  return payload;
+  return { ...payload, status: response.status };
 }
 
 export function resultErrors<T>(result: ApiResult<T>) {
@@ -58,6 +59,13 @@ export async function loginRequest(email: string, password: string) {
   return apiRequest<LoginResponse>("/api/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
+  });
+}
+
+export async function refreshRequest(refreshToken?: string) {
+  return apiRequest<LoginResponse>("/api/refresh", {
+    method: "POST",
+    headers: refreshToken ? { Cookie: `tranxit_refresh=${refreshToken}` } : undefined,
   });
 }
 
