@@ -127,22 +127,17 @@ async function runDiagnosticGroup(name, args) {
 
 function runDocker(args, alwaysPrint = false) {
   const command = `docker ${args.join(" ")}`;
+  console.log(`$ ${command}`);
+
   const result = spawnSync("docker", args, {
     cwd: backendRoot,
     env: e2eEnv(),
-    encoding: "utf8",
-    maxBuffer: 1024 * 1024 * 64,
+    stdio: "inherit",
   });
 
   const status = result.status ?? (result.signal === "SIGPIPE" ? 13 : 1);
-  if (alwaysPrint || status !== 0) {
-    console.log(`$ ${command}`);
-    if (result.stdout) {
-      console.log(result.stdout);
-    }
-    if (result.stderr) {
-      console.error(result.stderr);
-    }
+  if (alwaysPrint && status === 0) {
+    return { status };
   }
 
   if (result.error) {

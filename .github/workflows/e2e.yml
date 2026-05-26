@@ -30,12 +30,46 @@ jobs:
       - name: Resolve backend ref
         id: backend-ref
         run: |
+          backend_repo="https://github.com/makewaysdotnet/TranXIT-Backend.git"
+          fallback="feature/web-first-mvp"
+          fixture_path="TranXit/docker-compose.test.yml"
           candidate="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
-          if git ls-remote --exit-code --heads https://github.com/makewaysdotnet/TranXIT-Backend.git "$candidate" >/dev/null; then
-            echo "ref=$candidate" >> "$GITHUB_OUTPUT"
+
+          has_backend_fixture() {
+            ref="$1"
+            tmp_dir="$(mktemp -d)"
+            git -C "$tmp_dir" init -q
+            git -C "$tmp_dir" remote add origin "$backend_repo"
+            if ! git -C "$tmp_dir" fetch --depth=1 origin "$ref" >/dev/null 2>&1; then
+              rm -rf "$tmp_dir"
+              return 1
+            fi
+            git -C "$tmp_dir" cat-file -e "FETCH_HEAD:$fixture_path" >/dev/null 2>&1
+            found=$?
+            rm -rf "$tmp_dir"
+            return "$found"
+          }
+
+          if git ls-remote --exit-code --heads "$backend_repo" "$candidate" >/dev/null; then
+            selected="$candidate"
           else
-            echo "ref=feature/web-first-mvp" >> "$GITHUB_OUTPUT"
+            echo "::notice::Backend branch $candidate was not found; falling back to $fallback"
+            selected="$fallback"
           fi
+
+          if ! has_backend_fixture "$selected"; then
+            if [ "$selected" != "$fallback" ]; then
+              echo "::error::Backend $selected is missing $fixture_path; falling back to $fallback"
+              selected="$fallback"
+            fi
+
+            if ! has_backend_fixture "$selected"; then
+              echo "::error::Backend fallback $selected is missing $fixture_path"
+              exit 1
+            fi
+          fi
+
+          echo "ref=$selected" >> "$GITHUB_OUTPUT"
 
       - name: Checkout backend test stack
         uses: actions/checkout@v4
