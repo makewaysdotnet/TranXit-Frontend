@@ -8,6 +8,11 @@
 
 # testing
 /coverage
+/test-results
+/playwright-report
+/e2e/.auth
+trace.zip
+*.webm
 
 # next.js
 /.next/

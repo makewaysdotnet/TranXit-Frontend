@@ -4,6 +4,8 @@ import { registerRequest } from "@/lib/api";
 import { ApiResult, LoginResponse } from "@/lib/types";
 
 const demoAuthEnabled = process.env.TRANXIT_ENABLE_DEMO_AUTH === "true";
+const exposeDevelopmentCode =
+  process.env.NODE_ENV !== "production" || process.env.TRANXIT_E2E_EXPOSE_DEV_CODE === "true";
 const authCookieNames = [
   "tranxit_session",
   "tranxit_role",
@@ -80,14 +82,14 @@ export async function POST(request: Request) {
       path: "/",
       maxAge: 60 * 30,
     });
-    if (result.value.developmentVerificationCode && process.env.NODE_ENV !== "production") {
+    if (result.value.developmentVerificationCode && exposeDevelopmentCode) {
       cookieStore.set(
         "tranxit_dev_verification_code",
         result.value.developmentVerificationCode,
         {
           httpOnly: true,
           sameSite: "lax",
-          secure: false,
+          secure: process.env.NODE_ENV === "production",
           path: "/",
           maxAge: 60 * 30,
         },

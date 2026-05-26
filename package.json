@@ -6,7 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "build:e2e": "node e2e/scripts/build-e2e.mjs",
+    "start:e2e": "node e2e/scripts/start-e2e.mjs",
+    "e2e:test": "node e2e/scripts/run-e2e.mjs",
+    "e2e:stack:up": "node e2e/scripts/test-stack.mjs up",
+    "e2e:stack:down": "node e2e/scripts/test-stack.mjs down",
+    "e2e:ci": "npm run e2e:stack:up && npm run build:e2e && npm run e2e:test"
   },
   "dependencies": {
     "lucide-react": "^1.16.0",
@@ -15,6 +21,7 @@
     "react-dom": "19.2.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
