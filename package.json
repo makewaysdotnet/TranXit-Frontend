@@ -11,6 +11,7 @@
     "start:e2e": "node e2e/scripts/start-e2e.mjs",
     "e2e:test": "node e2e/scripts/run-e2e.mjs",
     "e2e:stack:up": "node e2e/scripts/test-stack.mjs up",
+    "e2e:stack:ready": "node e2e/scripts/test-stack.mjs ready",
     "e2e:stack:down": "node e2e/scripts/test-stack.mjs down",
     "e2e:stack:logs": "node e2e/scripts/test-stack.mjs logs",
     "e2e:ci": "npm run e2e:stack:up && npm run build:e2e && npm run e2e:test"
