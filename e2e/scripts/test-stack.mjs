@@ -6,6 +6,10 @@ import { apiUrl, backendRoot, e2eEnv, projectName } from "./env.mjs";
 const action = process.argv[2];
 const composeFile = path.join(backendRoot, "docker-compose.test.yml");
 
+process.on("SIGPIPE", () => {
+  console.warn("Ignoring Docker Compose SIGPIPE; gateway readiness decides E2E stack success.");
+});
+
 if (!["up", "down", "logs"].includes(action)) {
   console.error("Usage: node e2e/scripts/test-stack.mjs <up|down|logs>");
   process.exit(1);
