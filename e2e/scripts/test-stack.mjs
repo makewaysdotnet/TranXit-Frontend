@@ -52,7 +52,13 @@ const result = await runDocker(composeArgs);
 
 if (result.status !== 0) {
   await dumpComposeDiagnostics();
-  process.exit(result.status ?? 1);
+  if (action !== "up" || result.status !== 13) {
+    process.exit(result.status ?? 1);
+  }
+
+  console.warn(
+    "docker compose up returned exit 13 after startup; validating gateway readiness before failing.",
+  );
 }
 
 if (action === "up") {
