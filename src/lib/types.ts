@@ -5,6 +5,7 @@ export type ApiResult<T> = {
   value?: T;
   error?: string[];
   errors?: string[];
+  status?: number;
 };
 
 export type LoginResponse = {
@@ -14,6 +15,8 @@ export type LoginResponse = {
   role?: UserRole | null;
   roleId?: number | null;
   token?: string;
+  refreshToken?: string;
+  refreshTokenExpires?: string;
   isEmailVerified?: boolean;
   expires?: string;
   developmentVerificationCode?: string | null;
