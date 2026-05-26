@@ -44,12 +44,7 @@ const composeArgs =
         "--remove-orphans",
       ];
 
-const result = spawnSync("docker", composeArgs, {
-  cwd: backendRoot,
-  env: e2eEnv(),
-  shell: true,
-  stdio: "inherit",
-});
+const result = runDocker(composeArgs);
 
 if (result.status !== 0 && action !== "up") {
   process.exit(result.status ?? 1);
@@ -90,16 +85,29 @@ async function waitForGateway() {
 }
 
 function dumpComposeDiagnostics() {
-  spawnSync("docker", ["compose", "-p", projectName, "-f", composeFile, "ps"], {
+  runDocker(["compose", "-p", projectName, "-f", composeFile, "ps"], true);
+  runDocker(["compose", "-p", projectName, "-f", composeFile, "logs", "--tail", "120"], true);
+}
+
+function runDocker(args, alwaysPrint = false) {
+  const command = `docker ${args.join(" ")}`;
+  const result = spawnSync("docker", args, {
     cwd: backendRoot,
     env: e2eEnv(),
     shell: true,
-    stdio: "inherit",
+    encoding: "utf8",
+    maxBuffer: 1024 * 1024 * 100,
   });
-  spawnSync("docker", ["compose", "-p", projectName, "-f", composeFile, "logs", "--tail", "120"], {
-    cwd: backendRoot,
-    env: e2eEnv(),
-    shell: true,
-    stdio: "inherit",
-  });
+
+  if (alwaysPrint || result.status !== 0) {
+    console.log(`$ ${command}`);
+    if (result.stdout) {
+      console.log(result.stdout);
+    }
+    if (result.stderr) {
+      console.error(result.stderr);
+    }
+  }
+
+  return result;
 }
