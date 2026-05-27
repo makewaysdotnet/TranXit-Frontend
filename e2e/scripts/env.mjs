@@ -44,6 +44,9 @@ export function e2eEnv(overrides = {}) {
       process.env.TRANXIT_E2E_RABBITMQ_USERNAME || "tranxit_e2e",
     TRANXIT_E2E_RABBITMQ_PASSWORD:
       process.env.TRANXIT_E2E_RABBITMQ_PASSWORD || "TranXIT_E2E_Rabbit_2026!",
+    TRANXIT_E2E_MAIL_INBOX: process.env.TRANXIT_E2E_MAIL_INBOX || "",
+    TRANXIT_E2E_MAIL_INBOX_USER: process.env.TRANXIT_E2E_MAIL_INBOX_USER || "",
+    TRANXIT_E2E_MAIL_INBOX_PASSWORD: process.env.TRANXIT_E2E_MAIL_INBOX_PASSWORD || "",
     ...overrides,
   };
 }

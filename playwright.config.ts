@@ -7,10 +7,16 @@ const apiURL =
   process.env.TRANXIT_API_URL ||
   process.env.NEXT_PUBLIC_TRANXIT_API_URL ||
   `http://127.0.0.1:${gatewayPort}`;
+const mailInboxURL = process.env.TRANXIT_E2E_MAIL_INBOX || "";
+const mailInboxUser = process.env.TRANXIT_E2E_MAIL_INBOX_USER || "";
+const mailInboxPassword = process.env.TRANXIT_E2E_MAIL_INBOX_PASSWORD || "";
 
 process.env.PLAYWRIGHT_BASE_URL = baseURL;
 process.env.TRANXIT_API_URL = apiURL;
 process.env.NEXT_PUBLIC_TRANXIT_API_URL = apiURL;
+process.env.TRANXIT_E2E_MAIL_INBOX = mailInboxURL;
+process.env.TRANXIT_E2E_MAIL_INBOX_USER = mailInboxUser;
+process.env.TRANXIT_E2E_MAIL_INBOX_PASSWORD = mailInboxPassword;
 process.env.TRANXIT_E2E_EXPOSE_DEV_CODE ||= "true";
 
 export default defineConfig({
@@ -35,6 +41,9 @@ export default defineConfig({
       PLAYWRIGHT_BASE_URL: baseURL,
       TRANXIT_API_URL: apiURL,
       NEXT_PUBLIC_TRANXIT_API_URL: apiURL,
+      TRANXIT_E2E_MAIL_INBOX: mailInboxURL,
+      TRANXIT_E2E_MAIL_INBOX_USER: mailInboxUser,
+      TRANXIT_E2E_MAIL_INBOX_PASSWORD: mailInboxPassword,
       TRANXIT_E2E_EXPOSE_DEV_CODE: "true",
     },
   },
