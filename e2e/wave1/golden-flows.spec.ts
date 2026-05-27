@@ -23,7 +23,7 @@ test("T-E2E-CUST.GoldenFlow", async ({ page, request }) => {
   await page.getByRole("button", { name: "Create account" }).click();
 
   await expect(page).toHaveURL(/\/verify-email$/);
-  const otp = await readDevOtpCookie(page);
+  const otp = await readDevOtpCookie(page, email);
   await page.getByLabel("Verification code").fill(otp);
   await page.getByRole("button", { name: "Verify email" }).click();
   await expect(page).toHaveURL(/\/login\?verified=1$/);

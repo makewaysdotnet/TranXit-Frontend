@@ -41,16 +41,160 @@ type CreatedJob = {
   jobId: number;
 };
 
-export async function readDevOtpCookie(page: Page) {
+function mailpitConfig() {
+  const inbox = process.env.TRANXIT_E2E_MAIL_INBOX?.trim();
+  if (!inbox) {
+    return null;
+  }
+
+  const url = new URL(inbox);
+  let username = process.env.TRANXIT_E2E_MAIL_INBOX_USER || decodeURIComponent(url.username);
+  let password = process.env.TRANXIT_E2E_MAIL_INBOX_PASSWORD || decodeURIComponent(url.password);
+  username = username.trim();
+  password = password.trim();
+
+  url.username = "";
+  url.password = "";
+
+  if ((username && !password) || (!username && password)) {
+    throw new Error("TRANXIT_E2E_MAIL_INBOX_USER and TRANXIT_E2E_MAIL_INBOX_PASSWORD must be set together.");
+  }
+
+  const headers: Record<string, string> = {};
+  if (username && password) {
+    headers.Authorization = `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
+  }
+
+  return {
+    baseUrl: url.toString().replace(/\/$/, ""),
+    headers,
+  };
+}
+
+function collectStrings(value: unknown, strings: string[] = []): string[] {
+  if (typeof value === "string") {
+    strings.push(value);
+    return strings;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectStrings(item, strings));
+    return strings;
+  }
+
+  if (value && typeof value === "object") {
+    Object.values(value).forEach((item) => collectStrings(item, strings));
+  }
+
+  return strings;
+}
+
+function extractOtp(value: unknown) {
+  const match = collectStrings(value).join(" ").match(/\b(\d{6})\b/);
+  return match?.[1] || "";
+}
+
+function firstMailpitMessage(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  const messages = record.messages || record.Messages || record.items || record.Items;
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return null;
+  }
+
+  return messages[0] as Record<string, unknown>;
+}
+
+function mailpitMessageId(message: Record<string, unknown> | null) {
+  if (!message) {
+    return "";
+  }
+
+  const candidates = ["ID", "Id", "id", "MessageID", "MessageId", "messageId"];
+  for (const key of candidates) {
+    const value = message[key];
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return "";
+}
+
+async function fetchMailpitJson(url: string, headers: Record<string, string>) {
+  const response = await fetch(url, { headers });
+  if (!response.ok) {
+    throw new Error(`Mailpit API returned HTTP ${response.status}`);
+  }
+
+  return response.json() as Promise<unknown>;
+}
+
+async function readMailpitOtp(email: string) {
+  const config = mailpitConfig();
+  if (!config) {
+    return "";
+  }
+
+  const searchUrl = `${config.baseUrl}/api/v1/search?query=${encodeURIComponent(`to:${email}`)}&limit=1`;
+  const search = await fetchMailpitJson(searchUrl, config.headers);
+  const searchOtp = extractOtp(search);
+  if (searchOtp) {
+    return searchOtp;
+  }
+
+  const messageId = mailpitMessageId(firstMailpitMessage(search));
+  if (!messageId) {
+    return "";
+  }
+
+  const message = await fetchMailpitJson(
+    `${config.baseUrl}/api/v1/message/${encodeURIComponent(messageId)}`,
+    config.headers,
+  );
+  return extractOtp(message);
+}
+
+export async function readDevOtpCookie(page: Page, email?: string) {
+  if (mailpitConfig()) {
+    if (!email) {
+      throw new Error("A test email is required when TRANXIT_E2E_MAIL_INBOX is set.");
+    }
+
+    let otp = "";
+    await expect
+      .poll(
+        async () => {
+          try {
+            otp = await readMailpitOtp(email);
+          } catch {
+            otp = "";
+          }
+          return otp;
+        },
+        {
+          timeout: 60_000,
+          intervals: [1_000, 2_000, 5_000],
+        },
+      )
+      .toMatch(/^\d{6}$/);
+
+    return otp;
+  }
+
+  let otp = "";
   await expect
     .poll(async () => {
       const cookies = await page.context().cookies();
-      return cookies.find((cookie) => cookie.name === "tranxit_dev_verification_code")?.value || "";
+      otp = cookies.find((cookie) => cookie.name === "tranxit_dev_verification_code")?.value || "";
+      return otp;
     })
     .toMatch(/^\d{6}$/);
 
-  const cookies = await page.context().cookies();
-  return cookies.find((cookie) => cookie.name === "tranxit_dev_verification_code")!.value;
+  return otp;
 }
 
 export async function gatewayLogin(
