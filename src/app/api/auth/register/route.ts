@@ -5,8 +5,10 @@ import { clearAuthCookies } from "@/lib/auth-session";
 import { ApiResult, LoginResponse } from "@/lib/types";
 
 const demoAuthEnabled = process.env.TRANXIT_ENABLE_DEMO_AUTH === "true";
+const productionDeployment = process.env.TRANXIT_DEPLOY_ENV === "production";
 const exposeDevelopmentCode =
-  process.env.NODE_ENV !== "production" || process.env.TRANXIT_E2E_EXPOSE_DEV_CODE === "true";
+  !productionDeployment &&
+  (process.env.NODE_ENV !== "production" || process.env.TRANXIT_E2E_EXPOSE_DEV_CODE === "true");
 
 export async function POST(request: Request) {
   const body = await request.json();
