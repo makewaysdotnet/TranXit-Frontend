@@ -102,7 +102,21 @@ jobs:
 
           if [ "$status" -eq 13 ]; then
             echo "::warning::Backend stack startup exited 13 after Compose startup; validating gateway readiness before failing."
-            npm run e2e:stack:ready
+            ready=false
+            for attempt in $(seq 1 90); do
+              if curl -fsS "$TRANXIT_API_URL/api/roles" >/dev/null; then
+                echo "TranXIT E2E gateway is ready at $TRANXIT_API_URL"
+                ready=true
+                break
+              fi
+              echo "Waiting for TranXIT E2E gateway at $TRANXIT_API_URL ($attempt/90)"
+              sleep 2
+            done
+
+            if [ "$ready" != "true" ]; then
+              npm run e2e:stack:logs || true
+              exit 1
+            fi
           elif [ "$status" -ne 0 ]; then
             exit "$status"
           fi
