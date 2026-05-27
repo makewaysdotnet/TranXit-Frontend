@@ -1,0 +1,15 @@
+.git
+.github
+.next
+.vscode
+coverage
+e2e/.auth
+node_modules
+npm-debug.log*
+playwright-report
+test-results
+trace.zip
+*.webm
+.env
+.env.*
+!.env.example
