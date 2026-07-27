@@ -124,3 +124,47 @@ test("T-E2E-AUTH.CrossRoleRedirect", async ({
   await expect(courierPage).toHaveURL(/\/courier\/dashboard$/);
   await courierContext.close();
 });
+
+test("T-E2E-AUTH.BffTokenContainment", async ({ page }) => {
+  // UC-AUTH-10
+  await page.goto("/login");
+  const loginResponse = await page.evaluate(async () => {
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: "customer@tranxit.local",
+        password: "Password1!",
+      }),
+    });
+    return { status: response.status, body: await response.json() };
+  });
+  expect(loginResponse.status).toBe(200);
+  const loginResult = loginResponse.body;
+  expect(loginResult.isSuccess).toBe(true);
+  expect(loginResult.value).not.toHaveProperty("token");
+  expect(loginResult.value).not.toHaveProperty("refreshToken");
+  expect(loginResult.value).not.toHaveProperty("refreshTokenExpires");
+
+  const refreshResponse = await page.evaluate(async () => {
+    const response = await fetch("/api/auth/refresh", { method: "POST" });
+    return { status: response.status, body: await response.json() };
+  });
+  expect(refreshResponse.status).toBe(200);
+  const refreshResult = refreshResponse.body;
+  expect(refreshResult.isSuccess).toBe(true);
+  expect(refreshResult.value).not.toHaveProperty("token");
+  expect(refreshResult.value).not.toHaveProperty("refreshToken");
+  expect(refreshResult.value).not.toHaveProperty("refreshTokenExpires");
+
+  const logoutStatus = await page.evaluate(async () => {
+    const response = await fetch("/api/auth/logout", { method: "POST" });
+    return response.status;
+  });
+  expect(logoutStatus).toBe(200);
+  const postLogoutRefreshStatus = await page.evaluate(async () => {
+    const response = await fetch("/api/auth/refresh", { method: "POST" });
+    return response.status;
+  });
+  expect(postLogoutRefreshStatus).toBe(401);
+});

@@ -107,6 +107,10 @@ export function AuthPanel({
     setLoading(false);
 
     if (!response.ok || !result.isSuccess) {
+      if (!isRegister && result.value?.isEmailVerified === false) {
+        router.push("/verify-email");
+        return;
+      }
       setError((result.error || result.errors || ["Unable to continue"]).join(", "));
       return;
     }

@@ -41,6 +41,33 @@ export function clearAuthCookies(cookieStore: CookieStore) {
   }
 }
 
+export function setPendingVerificationCookies(
+  cookieStore: CookieStore,
+  auth: Pick<LoginResponse, "email" | "role">,
+  developmentVerificationCode?: string | null,
+) {
+  if (!auth.email || !auth.role) {
+    return;
+  }
+
+  const options = {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure,
+    path: "/",
+    maxAge: 60 * 30,
+  };
+  cookieStore.set("tranxit_pending_email", auth.email, options);
+  cookieStore.set("tranxit_pending_role", auth.role, options);
+  if (developmentVerificationCode) {
+    cookieStore.set(
+      "tranxit_dev_verification_code",
+      developmentVerificationCode,
+      options,
+    );
+  }
+}
+
 export function setAuthenticatedCookies(cookieStore: CookieStore, auth: LoginResponse) {
   const token = auth.token;
   const role = auth.role;
