@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { registerRequest } from "@/lib/api";
-import { clearAuthCookies } from "@/lib/auth-session";
+import {
+  clearAuthCookies,
+  setPendingVerificationCookies,
+} from "@/lib/auth-session";
+import { toPublicAuthResult } from "@/lib/public-auth";
 import { ApiResult, LoginResponse } from "@/lib/types";
 
 const demoAuthEnabled = process.env.TRANXIT_ENABLE_DEMO_AUTH === "true";
@@ -54,34 +58,19 @@ export async function POST(request: Request) {
 
     clearAuthCookies(cookieStore);
 
-    cookieStore.set("tranxit_pending_email", result.value.email || body.email, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 30,
-    });
-    cookieStore.set("tranxit_pending_role", role, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 30,
-    });
-    if (result.value.developmentVerificationCode && exposeDevelopmentCode) {
-      cookieStore.set(
-        "tranxit_dev_verification_code",
-        result.value.developmentVerificationCode,
-        {
-          httpOnly: true,
-          sameSite: "lax",
-          secure: process.env.NODE_ENV === "production",
-          path: "/",
-          maxAge: 60 * 30,
-        },
-      );
-    }
+    setPendingVerificationCookies(
+      cookieStore,
+      {
+        email: result.value.email || body.email,
+        role,
+      },
+      exposeDevelopmentCode
+        ? result.value.developmentVerificationCode
+        : undefined,
+    );
   }
 
-  return NextResponse.json(result, { status: result.isSuccess ? 200 : 400 });
+  return NextResponse.json(toPublicAuthResult(result), {
+    status: result.isSuccess ? 200 : 400,
+  });
 }

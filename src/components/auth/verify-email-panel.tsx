@@ -16,8 +16,39 @@ export function VerifyEmailPanel({
   developmentCode?: string;
 }) {
   const router = useRouter();
+  const [email, setEmail] = useState(initialEmail);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [notice, setNotice] = useState("");
+
+  async function resendCode() {
+    if (!email) {
+      setError("Enter the email address to resend the code.");
+      return;
+    }
+
+    setError("");
+    setNotice("");
+    setResending(true);
+    try {
+      const response = await fetch("/api/auth/send-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.isSuccess) {
+        setError((result.error || result.errors || ["Unable to resend code"]).join(", "));
+        return;
+      }
+      setNotice("A new verification code has been sent.");
+    } catch {
+      setError("Unable to resend the verification code right now.");
+    } finally {
+      setResending(false);
+    }
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -66,7 +97,8 @@ export function VerifyEmailPanel({
           name="email"
           type="email"
           placeholder="name@company.com"
-          defaultValue={initialEmail}
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
           required
         />
         <TextField
@@ -89,9 +121,22 @@ export function VerifyEmailPanel({
             {error}
           </p>
         ) : null}
+        {notice ? (
+          <p className="rounded-lg bg-[#F5F5FA] p-3 text-sm font-medium text-[#595D62]">
+            {notice}
+          </p>
+        ) : null}
         <Button type="submit" disabled={loading} icon={<ArrowRight size={16} />}>
           {loading ? "Verifying..." : "Verify email"}
         </Button>
+        <button
+          type="button"
+          className="text-sm font-bold text-[#171721] underline decoration-[#BFF000] underline-offset-4 disabled:opacity-50"
+          disabled={resending}
+          onClick={resendCode}
+        >
+          {resending ? "Sending..." : "Resend code"}
+        </button>
       </form>
       <p className="mt-6 text-center text-sm text-[#595D62]">
         Already verified?{" "}

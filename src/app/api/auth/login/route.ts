@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { loginRequest } from "@/lib/api";
-import { clearAuthCookies, setAuthenticatedCookies } from "@/lib/auth-session";
+import {
+  clearAuthCookies,
+  setAuthenticatedCookies,
+  setPendingVerificationCookies,
+} from "@/lib/auth-session";
+import { toPublicAuthResult } from "@/lib/public-auth";
 import { ApiResult, LoginResponse } from "@/lib/types";
 
 const demoAuthEnabled = process.env.TRANXIT_ENABLE_DEMO_AUTH === "true";
@@ -44,7 +49,17 @@ export async function POST(request: Request) {
   }
 
   if (!result.isSuccess || !result.value) {
-    return NextResponse.json(result, { status: 400 });
+    if (
+      result.value?.isEmailVerified === false &&
+      result.value.email &&
+      result.value.role
+    ) {
+      const cookieStore = await cookies();
+      clearAuthCookies(cookieStore);
+      setPendingVerificationCookies(cookieStore, result.value);
+    }
+
+    return NextResponse.json(toPublicAuthResult(result), { status: 400 });
   }
 
   const token = result.value.token;
@@ -67,5 +82,5 @@ export async function POST(request: Request) {
   clearAuthCookies(cookieStore);
   setAuthenticatedCookies(cookieStore, result.value);
 
-  return NextResponse.json(result);
+  return NextResponse.json(toPublicAuthResult(result));
 }

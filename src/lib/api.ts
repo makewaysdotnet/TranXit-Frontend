@@ -69,6 +69,13 @@ export async function refreshRequest(refreshToken?: string) {
   });
 }
 
+export async function logoutRequest(refreshToken?: string) {
+  return apiRequest<boolean>("/api/logout", {
+    method: "POST",
+    headers: refreshToken ? { Cookie: `tranxit_refresh=${refreshToken}` } : undefined,
+  });
+}
+
 export async function registerRequest(input: {
   email: string;
   password: string;

@@ -22,6 +22,11 @@ export type LoginResponse = {
   developmentVerificationCode?: string | null;
 };
 
+export type PublicLoginResponse = Pick<
+  LoginResponse,
+  "id" | "name" | "email" | "role" | "roleId" | "isEmailVerified"
+>;
+
 export type DropdownOption = {
   id: number;
   name: string;
