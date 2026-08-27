@@ -78,6 +78,17 @@ export type ShipmentItem = {
 export type BidOffer = {
   id: number;
   proposalId?: number;
+  acceptedProposalId?: number;
+  bidStatusId?: number | null;
+  isJobAwarded?: boolean;
+  canAccept?: boolean;
+  proposals?: {
+    id: number;
+    isBaseBid: boolean;
+    total: string;
+    deliveryDate: string;
+    deliveryType: string;
+  }[];
   courierName: string;
   label: string;
   total: string;
@@ -167,6 +178,17 @@ export type BackendJobBid = {
   bidId: number;
   bidProposalId?: number | null;
   bidProposalIds?: number[];
+  acceptedBidProposalId?: number | null;
+  bidStatusId?: number | null;
+  isJobAwarded?: boolean;
+  canAccept?: boolean;
+  bidProposals?: {
+    bidProposalId: number;
+    isBaseBid: boolean;
+    total?: number | null;
+    deliveryDateUtc?: string | null;
+    deliveryType?: string | null;
+  }[];
   bidMinOffer: number;
   courierName: string;
   courierId: number;

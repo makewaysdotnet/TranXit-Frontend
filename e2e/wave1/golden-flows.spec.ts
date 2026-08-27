@@ -45,8 +45,11 @@ test("T-E2E-CUST.GoldenFlow", async ({ page, request }) => {
   await page.reload();
 
   await expect(page.getByRole("button", { name: "Accept bid" })).toBeVisible();
+  await expect(page.getByText("PKR 2,030,000.00", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Accept bid" }).click();
   await expect(page.getByRole("button", { name: "Bid accepted" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByText("PKR 2,030,000.00", { exact: true })).toBeVisible();
   await expectGatewayJobStatus(request, email, jobId, "Won");
 
   await page.goto("/dashboard");
@@ -65,9 +68,14 @@ test("T-E2E-COUR.GoldenFlow", async ({ browser, baseURL, courierStorageState, re
   await page.locator(`a[href="/courier/jobs/${job.jobId}/bid"]`).click();
   await expect(page).toHaveURL(new RegExp(`/courier/jobs/${job.jobId}/bid$`));
   await expect(page.getByText(`Build proposal for ${job.jobNumber}`)).toBeVisible();
+  await page.getByLabel("Ocean freight", { exact: true }).fill("1234.56");
+  await page.getByLabel("Origin handling", { exact: true }).fill("7.89");
+  await page.getByLabel("Customs clearance", { exact: true }).fill("0.10");
+  await page.getByLabel("Pickup charges", { exact: true }).fill("0.20");
+  await expect(page.getByRole("status", { name: "Proposal total" })).toHaveText("PKR 1,242.75");
   await page.getByRole("button", { name: "Submit bid" }).click();
   await expect(page).toHaveURL(new RegExp(`/courier/jobs/${job.jobId}$`));
-  await expectGatewayBid(request, job.jobId);
+  await expectGatewayBid(request, job.jobId, 1242.75);
 
   await context.close();
 });

@@ -1,3 +1,5 @@
+import "server-only";
+
 import {
   ApiResult,
   BackendCourierJob,
@@ -38,16 +40,31 @@ export async function apiRequest<T>(
     cache: "no-store",
   });
 
-  const payload = (await response.json()) as ApiResult<T>;
+  let payload: ApiResult<T> | undefined;
+  try {
+    payload = (await response.json()) as ApiResult<T>;
+  } catch {
+    // Authentication middleware can deny a request without a JSON response body.
+    if (response.ok) {
+      throw new Error("Invalid response from backend");
+    }
+  }
 
   if (!response.ok) {
+    const errors = payload?.error || payload?.errors;
+    const fallback = response.status === 401 ? "Authentication required"
+      : response.status === 403 ? "Forbidden" : "Backend request failed";
     return {
       isSuccess: false,
-      error: payload.error || payload.errors || [response.statusText],
+      error: Array.isArray(errors) && errors.length > 0 && errors.every((error) => typeof error === "string")
+        ? errors : [fallback],
       status: response.status,
     };
   }
 
+  if (!payload || typeof payload.isSuccess !== "boolean") {
+    throw new Error("Invalid response from backend");
+  }
   return { ...payload, status: response.status };
 }
 
@@ -65,7 +82,7 @@ export async function loginRequest(email: string, password: string) {
 export async function refreshRequest(refreshToken?: string) {
   return apiRequest<LoginResponse>("/api/refresh", {
     method: "POST",
-    headers: refreshToken ? { Cookie: `tranxit_refresh=${refreshToken}` } : undefined,
+    body: JSON.stringify({ refreshToken }),
   });
 }
 

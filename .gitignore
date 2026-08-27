@@ -10,6 +10,7 @@
 /coverage
 /test-results
 /playwright-report
+# Includes edge-runtime credentials/CA/logs; .dockerignore also excludes this tree.
 /e2e/.auth
 trace.zip
 *.webm

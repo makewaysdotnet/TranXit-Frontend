@@ -14,8 +14,9 @@ import {
   LiveTrackingItem,
   RecentRoute,
 } from "./courier-dashboard-data";
+import { formatQuoteAmount, hasQuoteAmount } from "./quote-money";
 
-const moneyFormatter = new Intl.NumberFormat("en-PK", {
+const weightFormatter = new Intl.NumberFormat("en-PK", {
   maximumFractionDigits: 0,
 });
 
@@ -57,24 +58,19 @@ export function formatDate(value?: string | null, fallback = "Pending") {
 }
 
 function formatMoney(value?: number | null, fallback = "Awaiting bids") {
-  if (value === null || value === undefined || value <= 0) {
-    return fallback;
-  }
-
-  return `PKR ${moneyFormatter.format(value)}`;
+  return formatQuoteAmount(value, fallback);
 }
 
 function formatMoneyRange(min?: number | null, max?: number | null) {
-  if ((min === null || min === undefined || min <= 0) &&
-      (max === null || max === undefined || max <= 0)) {
+  if (!hasQuoteAmount(min) && !hasQuoteAmount(max)) {
     return "Awaiting bids";
   }
 
-  if (min && max && min !== max) {
+  if (hasQuoteAmount(min) && hasQuoteAmount(max) && min !== max) {
     return `${formatMoney(min)} - ${formatMoney(max, "")}`;
   }
 
-  return formatMoney(min || max);
+  return formatMoney(hasQuoteAmount(min) ? min : max);
 }
 
 function formatLocation(city?: string | null, country?: string | null) {
@@ -161,7 +157,7 @@ export function mapJobDetailToShipment(detail: BackendJobDetail): Shipment {
     items: (detail.jobItems || []).map((item) => ({
       name: item.itemName || `Item ${item.jobItemId}`,
       quantity: item.quantity || 0,
-      weight: item.weight ? `${moneyFormatter.format(item.weight)} kg` : "Pending",
+      weight: item.weight ? `${weightFormatter.format(item.weight)} kg` : "Pending",
       declaredValue: formatMoney(item.declaredValue, "Pending"),
     })),
   };
@@ -177,7 +173,19 @@ export function mapBidToOffer(bid: BackendJobBid, detail?: BackendJobDetail): Bi
 
   return {
     id: bid.bidId,
-    proposalId: bid.bidProposalId ?? bid.bidProposalIds?.[0],
+    proposalId: bid.acceptedBidProposalId ??
+      (bid.isJobAwarded || bid.canAccept === false ? undefined : bid.bidProposalId ?? bid.bidProposalIds?.[0]),
+    acceptedProposalId: bid.acceptedBidProposalId ?? undefined,
+    bidStatusId: bid.bidStatusId,
+    isJobAwarded: bid.isJobAwarded,
+    canAccept: bid.canAccept,
+    proposals: (bid.bidProposals || []).map((proposal) => ({
+      id: proposal.bidProposalId,
+      isBaseBid: proposal.isBaseBid,
+      total: formatQuoteAmount(proposal.total, "Not recorded"),
+      deliveryDate: formatDate(proposal.deliveryDateUtc),
+      deliveryType: proposal.deliveryType || "Delivery proposal",
+    })),
     courierName: bid.courierName || `Courier #${bid.courierId}`,
     label: `Bid offer #${bid.bidId}`,
     total: formatMoney(bid.bidMinOffer),
@@ -199,7 +207,7 @@ export function mapCourierJobToListJob(job: BackendCourierJob): CourierJob {
     status: normalizeStatus(job.status),
     cargo: "Shipment request",
     deadline: formatRemaining(job.remainingTime),
-    bidStatus: job.yourBid && job.yourBid > 0 ? "Submitted" : "Not started",
+    bidStatus: hasQuoteAmount(job.yourBid) ? "Submitted" : "Not started",
     targetBudget: formatMoneyRange(job.minBid, job.maxBid),
   };
 }
@@ -217,7 +225,7 @@ export function mapCourierJobToDashboardJob(job: BackendCourierJob): CourierDash
     toCountry: job.destinationCountry || "Country",
     minBid: formatMoney(job.minBid),
     maxBid: formatMoney(job.maxBid),
-    yourBid: job.yourBid && job.yourBid > 0 ? formatMoney(job.yourBid) : null,
+    yourBid: hasQuoteAmount(job.yourBid) ? formatMoney(job.yourBid) : null,
     timeLeft: formatRemaining(job.remainingTime),
     status,
     dated: formatDate(job.createdOnUtc),

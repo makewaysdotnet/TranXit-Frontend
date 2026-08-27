@@ -124,6 +124,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Quote arithmetic and projection unit tests
+        run: npm run test:unit
+
       - name: Build frontend for E2E
         run: npm run build:e2e
 
