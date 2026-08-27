@@ -1,3 +1,5 @@
+import "server-only";
+
 import {
   ApiResult,
   BackendCourierJob,
@@ -65,7 +67,7 @@ export async function loginRequest(email: string, password: string) {
 export async function refreshRequest(refreshToken?: string) {
   return apiRequest<LoginResponse>("/api/refresh", {
     method: "POST",
-    headers: refreshToken ? { Cookie: `tranxit_refresh=${refreshToken}` } : undefined,
+    body: JSON.stringify({ refreshToken }),
   });
 }
 
