@@ -177,7 +177,20 @@ export function mapBidToOffer(bid: BackendJobBid, detail?: BackendJobDetail): Bi
 
   return {
     id: bid.bidId,
-    proposalId: bid.bidProposalId ?? bid.bidProposalIds?.[0],
+    proposalId: bid.acceptedBidProposalId ??
+      (bid.isJobAwarded || bid.canAccept === false ? undefined : bid.bidProposalId ?? bid.bidProposalIds?.[0]),
+    acceptedProposalId: bid.acceptedBidProposalId ?? undefined,
+    bidStatusId: bid.bidStatusId,
+    isJobAwarded: bid.isJobAwarded,
+    canAccept: bid.canAccept,
+    proposals: (bid.bidProposals || []).map((proposal) => ({
+      id: proposal.bidProposalId,
+      isBaseBid: proposal.isBaseBid,
+      total: proposal.total === null || proposal.total === undefined
+        ? "Not recorded" : `PKR ${moneyFormatter.format(proposal.total)}`,
+      deliveryDate: formatDate(proposal.deliveryDateUtc),
+      deliveryType: proposal.deliveryType || "Delivery proposal",
+    })),
     courierName: bid.courierName || `Courier #${bid.courierId}`,
     label: `Bid offer #${bid.bidId}`,
     total: formatMoney(bid.bidMinOffer),
