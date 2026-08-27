@@ -75,11 +75,11 @@ export function BidOfferCard({ bid }: { bid: BidOffer }) {
           </div>
           <p className="mt-1 text-sm text-[#8083A3]">{bid.courierName}</p>
         </div>
-        <div className="text-right">
+        <div className="min-w-0 max-w-full text-right">
           <p className="text-xs font-bold uppercase text-[#8083A3]">
             Total
           </p>
-          <p className="text-2xl font-bold text-[#171721]">{bid.total}</p>
+          <p className={`break-words font-bold text-[#171721] ${bid.total.length > 21 ? "text-xl" : "text-2xl"}`}>{bid.total}</p>
         </div>
       </div>
       <div className="my-5 h-px bg-[#E4E6E8]" />

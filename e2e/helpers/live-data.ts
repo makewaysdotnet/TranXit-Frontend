@@ -27,6 +27,8 @@ type BidListValue = {
     bidId: number;
     bidProposalId?: number | null;
     bidProposalIds?: number[];
+    bidMinOffer: number;
+    bidProposals: Array<{ total: number }>;
   }>;
 };
 
@@ -306,7 +308,7 @@ export async function createCustomerJobForCourierBid(request: APIRequestContext)
   };
 }
 
-export async function expectGatewayBid(request: APIRequestContext, jobId: number) {
+export async function expectGatewayBid(request: APIRequestContext, jobId: number, expectedAmount: number) {
   const customer = await gatewayLogin(request, "customer@tranxit.local");
   const response = await request.get(`${gatewayUrl}/api/bids/${jobId}?page=1&pageSize=20`, {
     headers: {
@@ -318,6 +320,8 @@ export async function expectGatewayBid(request: APIRequestContext, jobId: number
   const result = (await response.json()) as ApiResult<BidListValue>;
   expect(result.isSuccess).toBeTruthy();
   expect(result.value?.items.length).toBeGreaterThan(0);
+  expect(result.value!.items[0].bidMinOffer).toBe(expectedAmount);
+  expect(result.value!.items[0].bidProposals.map((proposal) => proposal.total)).toEqual([expectedAmount]);
   return result.value!.items[0];
 }
 

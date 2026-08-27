@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "test:unit": "playwright test --config playwright.unit.config.ts",
     "build:e2e": "node e2e/scripts/build-e2e.mjs",
     "start:e2e": "node e2e/scripts/start-e2e.mjs",
     "e2e:test": "node e2e/scripts/run-e2e.mjs",

@@ -194,14 +194,36 @@ export async function expectPersistedJob(page: Page, job: { id: number; itemName
   if (won) await expect(page.getByText("Won", { exact: true })).toBeVisible();
 }
 
-export async function placeBid(page: Page, jobId: number) {
+export async function placeBid(page: Page, jobId: number, zero = false) {
   await page.goto("/courier/jobs");
   await page.reload();
   await page.locator(`a[href="/courier/jobs/${jobId}/bid"]`).click();
   await expect(page.getByRole("button", { name: "Submit bid", exact: true })).toBeEnabled();
+  const freight = page.locator('form input[name="oceanFreight"]');
+  for (const invalid of ["-5", "abc12", "1.234", "10000000000000"]) {
+    await freight.fill(invalid);
+    await expect(freight).toHaveAttribute("aria-invalid", "true");
+    await expect(page.getByRole("button", { name: "Submit bid", exact: true })).toBeDisabled();
+    await expect(page.getByRole("status", { name: "Proposal total" })).toHaveText("Invalid amount");
+  }
+  const prices = zero ? ["0", "0", "0", "0"] : ["129300.17", "4700.23", "2300.41", "1800.18"];
+  const previews = zero ? ["390,000.00", "205,000.00", "110,000.00", "0.00"]
+    : ["519,300.17", "339,000.40", "246,300.81", "138,100.99"];
+  const chargeNames = ["oceanFreight", "handlingCharges", "customClearanceCharges", "pickupCharges"];
+  for (let index = 0; index < chargeNames.length; index++) {
+    const name = chargeNames[index];
+    await page.locator(`form input[name="${name}"]`).fill(prices[index]);
+    await expect(page.getByRole("status", { name: "Proposal total" })).toHaveText(`PKR ${previews[index]}`);
+  }
+  if (zero) {
+    await freight.fill("9999999999999.99");
+    const total = page.getByRole("status", { name: "Proposal total" });
+    await expect(total).toHaveText("PKR 9,999,999,999,999.99");
+    expect(await total.evaluate((node) => node.scrollWidth <= node.clientWidth), "The largest supported total must fit its panel").toBe(true);
+    await freight.fill("0");
+  }
   const values = {
-    oceanFreight: "129300", handlingCharges: "4700", customClearanceCharges: "2300",
-    pickupCharges: "1800", notes: "Edge delivery with protective packaging.",
+    notes: "Edge delivery with protective packaging.",
     deliveryDate: new Date(Date.now() + 9 * 86_400_000).toISOString().slice(0, 10),
   };
   for (const [name, value] of Object.entries(values)) {
@@ -212,14 +234,15 @@ export async function placeBid(page: Page, jobId: number) {
   const value = successValue<{ bidId: number }>(submitted.response, 201);
   expect(value.bidId).toBeGreaterThan(0);
   const payload = submitted.request.postDataJSON() as Record<string, unknown>;
-  expect(payload.pickupCharges).toBe(1800);
-  expect(payload.handlingCharges).toBe(4700);
-  expect(payload.customClearanceCharges).toBe(2300);
-  // Quote composition is an owner decision in Batch 5, not an edge-routing assertion.
+  expect(payload.pickupCharges).toBe(zero ? 0 : 1800.18);
+  expect(payload.handlingCharges).toBe(zero ? 0 : 4700.23);
+  expect(payload.customClearanceCharges).toBe(zero ? 0 : 2300.41);
+  expect(object((payload.bidCustomCharges as unknown[])[0]).amount).toBe(zero ? 0 : 129300.17);
+  expect(object((payload.bidProposals as unknown[])[0]).total).toBe(zero ? 0 : 138100.99);
   await expect(page).toHaveURL(new RegExp(`/courier/jobs/${jobId}$`));
   await page.reload();
   await expect(page.getByText("Warehouse pickup", { exact: true })).toBeVisible();
-  return { id: value.bidId, payload };
+  return { id: value.bidId, payload, display: zero ? "PKR 0.00" : "PKR 138,100.99" };
 }
 
 export async function customerJobIds(page: Page): Promise<number[]> {

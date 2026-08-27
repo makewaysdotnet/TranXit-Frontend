@@ -72,7 +72,10 @@ neither the Next app nor .NET nor global Node TLS verification is disabled.
 
 - `T-E2E-EDGE.CookieOnlyGoldenFlow`: real UI register, Mailpit OTP, verification,
   login, non-default lookup/job/bid inputs, acceptance and persisted reloads;
-  wrong-role and wrong-owner calls are denied.
+  wrong-role and wrong-owner calls are denied. Non-default fractional prices must
+  agree in the live preview, request, customer view, history and accepted reload.
+- `T-E2E-EDGE.ZeroQuoteRoundTrip`: invalid input blocks submission, maximum-value
+  preview fits its panel, and a zero quote remains a submitted and acceptable bid.
 - `T-E2E-EDGE.UnauthenticatedDenied`: protected BFF requests and page guards.
 - `T-E2E-EDGE.RawAuthAliasesContained`: valid login bodies/ambient cookies across
   raw, namespace, case, slash and encoded aliases on both public sites; no raw tokens.
@@ -82,7 +85,7 @@ neither the Next app nor .NET nor global Node TLS verification is disabled.
   denial, private smoke while closed, refused creates add no jobs, and an acknowledged
   job survives close/reopen.
 
-The five browser tests run serially on Chromium desktop, tablet and mobile (15 cases).
+The six browser tests run serially on Chromium desktop, tablet and mobile (18 cases).
 No fetch/page.route mocks, direct gateway tokens, dev OTP cookies or demo accounts
 are used. Mailpit API access is only for OTP retrieval. Browser trace/video/screenshot
 and failure DOM retention are off to avoid recording credentials; sanitized wrapper
@@ -91,7 +94,7 @@ The fixture raises the configured auth rate limit to 1000 events/minute for alia
 enumeration; this suite does not verify the deployed rate-limit threshold.
 
 These tests do not close the full Batch 3 recovery-journal/fault-injection matrix or
-prove a staging restore drill. They do not choose or assert the unapproved Batch 5
-quote arithmetic policy, nor claim immediate revocation of already-issued access
+prove a staging restore drill. They use the approved all-in quote arithmetic contract,
+but do not choose currency/payment policies or claim immediate revocation of already-issued access
 JWTs. Build/runtime results must be recorded by the coordinating task after running
 the commands above; discovery and static checks are not browser execution evidence.

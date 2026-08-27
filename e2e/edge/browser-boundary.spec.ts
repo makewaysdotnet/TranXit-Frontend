@@ -28,6 +28,7 @@ test("T-E2E-EDGE.CookieOnlyGoldenFlow", async ({ edge }) => {
   await customer.page.reload();
   await expect(customer.page.getByText(courier.name, { exact: true })).toBeVisible();
   await expect(customer.page.getByRole("heading", { name: `Bid offer #${bid.id}`, exact: true })).toBeVisible();
+  await expect(customer.page.getByText(bid.display, { exact: true })).toBeVisible();
   const accepted = await roundTrip(customer.page, "/api/bids/status", "PUT", () => customer.page.getByRole("button", { name: "Accept bid", exact: true }).click());
   successValue(accepted.response);
   const award = accepted.request.postDataJSON() as { bidId: number; bidProposalId: number; status: number };
@@ -40,6 +41,7 @@ test("T-E2E-EDGE.CookieOnlyGoldenFlow", async ({ edge }) => {
 
   await customer.page.reload();
   await expect(customer.page.getByRole("button", { name: "Bid accepted", exact: true })).toBeDisabled();
+  await expect(customer.page.getByText(bid.display, { exact: true })).toBeVisible();
   const proposals = customer.page.getByRole("button", { name: /^Proposals \(/ });
   await expect(proposals).toHaveAttribute("aria-expanded", "false");
   await proposals.click();
@@ -47,6 +49,7 @@ test("T-E2E-EDGE.CookieOnlyGoldenFlow", async ({ edge }) => {
   const history = customer.page.locator(`#bid-${bid.id}-proposals`);
   await expect(history.getByText(new RegExp(`^Proposal #${award.bidProposalId}\\s*Accepted$`))).toBeVisible();
   await expect(history.getByText("Accepted", { exact: true })).toBeVisible();
+  await expect(history.getByText(bid.display, { exact: true })).toBeVisible();
   await proposals.click();
   await expect(proposals).toHaveAttribute("aria-expanded", "false");
   await expectPersistedJob(customer.page, job, true);
@@ -68,6 +71,26 @@ test("T-E2E-EDGE.CookieOnlyGoldenFlow", async ({ edge }) => {
   for (const path of ["/api/lookups", "/api/jobs", "/api/bids", "/api/bids/status"]) {
     expect(requests.filter((request) => request.path === path).every((request) => request.cookieNames.includes("tranxit_session") && !request.authorization), `Expected cookie-only requests for ${path}`).toBe(true);
   }
+});
+
+test("T-E2E-EDGE.ZeroQuoteRoundTrip", async ({ edge }) => {
+  // UC-COUR-4, UC-CUST-4, UC-CUST-5
+  const customer = await edge.register("Customer");
+  const courier = await edge.register("Courier");
+  const job = await createJob(customer.page);
+  const bid = await placeBid(courier.page, job.id, true);
+  await courier.page.goto("/courier/jobs");
+  const row = courier.page.locator("div.rounded-lg.border").filter({ has: courier.page.locator(`a[href="/courier/jobs/${job.id}"]`) });
+  await expect(row.getByRole("button", { name: "View bid", exact: true })).toBeVisible();
+  await expect(row.getByText(bid.display, { exact: true })).toBeVisible();
+  await customer.page.goto(`/jobs/${job.id}/bids`);
+  await expect(customer.page.getByText(bid.display, { exact: true })).toBeVisible();
+  const accepted = await roundTrip(customer.page, "/api/bids/status", "PUT", () => customer.page.getByRole("button", { name: "Accept bid", exact: true }).click());
+  successValue(accepted.response);
+  await customer.page.reload();
+  await expect(customer.page.getByRole("button", { name: "Bid accepted", exact: true })).toBeDisabled();
+  await expect(customer.page.getByText(bid.display, { exact: true })).toBeVisible();
+  await expectPersistedJob(customer.page, job, true);
 });
 
 test("T-E2E-EDGE.UnauthenticatedDenied", async ({ edge }) => {
