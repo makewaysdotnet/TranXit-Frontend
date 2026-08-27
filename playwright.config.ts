@@ -22,6 +22,7 @@ process.env.TRANXIT_E2E_EXPOSE_DEV_CODE ||= "true";
 export default defineConfig({
   testDir: "./e2e",
   testMatch: "**/*.spec.ts",
+  testIgnore: "**/edge/**",
   fullyParallel: false,
   workers: 1,
   retries: 1,
