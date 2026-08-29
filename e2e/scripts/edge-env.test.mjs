@@ -51,6 +51,10 @@ test("T-E2E-EDGE.IgnoreAmbientEnvironment", () => {
     assert.equal(actual.TRANXIT_EDGE_CADDYFILE, env.productionCaddyfile);
     assert.equal(actual.AUTH_RATE_LIMIT_EVENTS, "100");
     assert.equal(actual.AUTH_RATE_LIMIT_WINDOW, "10s");
+    assert.equal(actual.TRANXIT_SA_PASSWORD, actual.SQL_SA_PASSWORD);
+    assert.equal(actual.TRANXIT_JWT_SECRET, actual.JWT_SECRET);
+    assert.equal(actual.TRANXIT_RABBITMQ_USERNAME, actual.RABBITMQ_USER);
+    assert.equal(actual.TRANXIT_RABBITMQ_PASSWORD, actual.RABBITMQ_PASSWORD);
     assert.equal(actual.TRANXIT_INTERNAL_API_URL, "http://ocelotapigw:8080");
     assert.equal(actual.TRANXIT_E2E_EXPOSE_DEV_CODE, "false");
     for (const key of ["DOCKER_HOST", "NODE_OPTIONS", "NODE_TLS_REJECT_UNAUTHORIZED", "PLAYWRIGHT_BASE_URL", "COMPOSE_PROJECT_NAME"]) {
