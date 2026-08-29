@@ -1,0 +1,126 @@
+name: Production Browser Edge
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+      - 'codex/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-browser-edge-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  production-browser-edge:
+    name: production-browser-edge
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      TRANXIT_EDGE_E2E: "1"
+    defaults:
+      run:
+        working-directory: TranXit-Frontend
+    steps:
+      - name: Checkout frontend
+        id: frontend
+        uses: actions/checkout@v4
+        with:
+          path: TranXit-Frontend
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve exact backend branch
+        id: backend-ref
+        env:
+          CANDIDATE: ${{ github.head_ref || github.ref_name }}
+        run: |
+          set -euo pipefail
+          backend_sha="$(git ls-remote --exit-code --heads https://github.com/makewaysdotnet/TranXIT-Backend.git "$CANDIDATE" | awk 'NR == 1 { print $1 }')" || {
+            echo "::error::Exact backend branch '$CANDIDATE' is unavailable; production-edge CI does not fall back to another ref."
+            exit 1
+          }
+          if ! [[ "$backend_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Exact backend branch '$CANDIDATE' did not resolve to one commit."
+            exit 1
+          fi
+          echo "ref=$backend_sha" >> "$GITHUB_OUTPUT"
+          echo "branch=$CANDIDATE" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout exact backend branch
+        id: backend
+        uses: actions/checkout@v4
+        with:
+          repository: makewaysdotnet/TranXIT-Backend
+          ref: ${{ steps.backend-ref.outputs.ref }}
+          path: TranXIT-Backend
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Record exact refs
+        run: |
+          set -euo pipefail
+          mkdir -p e2e/.auth/edge-ci
+          frontend_sha="$(git rev-parse HEAD)"
+          backend_sha="$(git -C ../TranXIT-Backend rev-parse HEAD)"
+          test "$backend_sha" = "${{ steps.backend-ref.outputs.ref }}"
+          {
+            printf 'frontend_ref=%s\n' "$frontend_sha"
+            printf 'backend_ref=%s\n' "$backend_sha"
+            printf 'backend_branch=%s\n' "${{ steps.backend-ref.outputs.branch }}"
+          } | tee e2e/.auth/edge-ci/exact-refs.txt
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: TranXit-Frontend/package-lock.json
+
+      - name: Verify local Docker
+        run: docker info
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Check production-edge fixture and discover all cases
+        run: |
+          npm run e2e:edge:unit
+          npm run e2e:edge:check
+          npm run e2e:edge:test -- --list
+
+      - name: Credibility check - admission mutation must fail
+        run: npm run e2e:edge:credibility
+
+      - name: Start production-edge fixture
+        run: npm run e2e:edge:up
+
+      - name: Run full production browser-edge suite
+        run: npm run e2e:edge:test
+
+      - name: Edge diagnostics
+        if: failure()
+        run: npm run e2e:edge:logs || true
+
+      - name: Stop production-edge fixture
+        if: always()
+        run: npm run e2e:edge:down
+
+      - name: Upload sanitized edge evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-browser-edge-${{ github.run_attempt }}
+          path: |
+            TranXit-Frontend/e2e/.auth/edge-ci/
+            TranXit-Frontend/e2e/.auth/edge-runtime/*/logs/
+            TranXit-Frontend/e2e/.auth/edge-runtime/*/results/
+          if-no-files-found: warn
+          retention-days: 14

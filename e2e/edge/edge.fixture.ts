@@ -5,10 +5,10 @@ import {
   expect, test as base, type BrowserContext, type Cookie, type Page,
 } from "@playwright/test";
 import {
-  createRuntime, frontendRoot, isolatedEnv, loadRuntime, localHttps, origins, setAdmission,
+  createRuntime, frontendRoot, isolatedEnv, loadRuntime, origins, setAdmission,
 } from "../scripts/edge-env.cjs";
 import {
-  expectNoDevelopmentCookies, loginActor, object, publicIdentity, roundTrip, successValue,
+  expectNoDevelopmentCookies, loginActor, publicIdentity, roundTrip, successValue,
   type Actor,
 } from "./browser-helpers";
 
@@ -24,26 +24,12 @@ type EdgeFixture = {
 };
 
 async function readOtp(runtime: EdgeRuntime, email: string): Promise<string> {
-  const headers = { Authorization: `Basic ${Buffer.from(`${runtime.secrets.mailUser}:${runtime.secrets.mailPassword}`).toString("base64")}` };
-  const baseURL = origins(runtime).mail;
-  const deadline = Date.now() + 60_000;
-  while (Date.now() < deadline) {
-    const search = await localHttps(runtime, baseURL, `/api/v1/search?query=${encodeURIComponent(`to:${email}`)}&limit=10`, headers) as { status: number; body: string };
-    expect(search.status, "Authenticated fixture Mailpit search failed").toBe(200);
-    const messages = object(JSON.parse(search.body)).messages;
-    for (const entry of Array.isArray(messages) ? messages : []) {
-      const message = object(entry);
-      const recipients = Array.isArray(message.To) ? message.To : [];
-      if (!recipients.some((recipient) => object(recipient).Address === email)) continue;
-      if (typeof message.ID !== "string" || message.Subject !== "Email Verification") continue;
-      const response = await localHttps(runtime, baseURL, `/api/v1/message/${encodeURIComponent(message.ID)}`, headers) as { status: number; body: string };
-      expect(response.status, "Authenticated fixture Mailpit message read failed").toBe(200);
-      const code = String(object(JSON.parse(response.body)).Text ?? "").trim();
-      if (/^\d{6}$/.test(code)) return code;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 1_000));
-  }
-  throw new Error("No verification OTP arrived in the fixture's Mailpit inbox within 60 seconds.");
+  const result = await promisify(execFile)(process.execPath, ["e2e/scripts/edge-stack.mjs", "mail-otp", email], {
+    cwd: frontendRoot, env: isolatedEnv(), windowsHide: true, timeout: 75_000,
+  });
+  const code = result.stdout.trim().split(/\r?\n/).at(-1) ?? "";
+  expect(code).toMatch(/^\d{6}$/);
+  return code;
 }
 
 export const test = base.extend<{ edge: EdgeFixture }, { edgeRuntime: EdgeRuntime }>({
@@ -53,10 +39,14 @@ export const test = base.extend<{ edge: EdgeFixture }, { edgeRuntime: EdgeRuntim
     expect(runtime.phase).toBe("ready");
     await provide(runtime);
   }, { scope: "worker" }],
-  edge: async ({ browser, edgeRuntime, viewport, isMobile, hasTouch, deviceScaleFactor, userAgent }, provide) => {
+  edge: async ({ browser, edgeRuntime, viewport, isMobile, hasTouch, deviceScaleFactor, userAgent }, provide, testInfo) => {
     const contexts: BrowserContext[] = [];
     const pending: Promise<RequestEvidence>[] = [];
     const urls = origins(edgeRuntime);
+    const artifactCase = `${testInfo.project.name}:${testInfo.title}`.replace(/[^A-Za-z0-9_.:-]+/g, "_").slice(0, 160);
+    await promisify(execFile)(process.execPath, ["e2e/scripts/edge-stack.mjs", "record-artifact", artifactCase], {
+      cwd: frontendRoot, env: isolatedEnv(), windowsHide: true, timeout: 60_000,
+    });
     const newPage = async (origin = urls.app, cookies: Cookie[] = []) => {
       expect([urls.app, urls.secondary].includes(origin), "Browser fixture is local-only").toBe(true);
       const context = await browser.newContext({

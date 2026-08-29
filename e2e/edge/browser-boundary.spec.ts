@@ -7,8 +7,6 @@ import {
 } from "./browser-helpers";
 
 // The existing Development suite scans all *.spec.ts. Never run these against it.
-test.skip(process.env.TRANXIT_EDGE_E2E !== "1", "Requires the isolated production Caddy edge fixture.");
-
 test("T-E2E-EDGE.CookieOnlyGoldenFlow", async ({ edge }) => {
   // UC-NFR-7, UC-AUTH-1, UC-AUTH-2, UC-AUTH-3, UC-AUTH-7, UC-CUST-2, UC-CUST-4, UC-CUST-5, UC-COUR-2, UC-COUR-4
   const customer = await edge.register("Customer");

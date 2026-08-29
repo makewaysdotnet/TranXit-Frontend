@@ -21,6 +21,7 @@
     "e2e:edge:down": "node e2e/scripts/edge-stack.mjs down",
     "e2e:edge:logs": "node e2e/scripts/edge-stack.mjs logs",
     "e2e:edge:test": "node e2e/scripts/edge-stack.mjs test",
+    "e2e:edge:credibility": "node e2e/scripts/edge-credibility.mjs",
     "e2e:edge:unit": "node --test e2e/scripts/edge-env.test.mjs",
     "e2e:ci": "npm run e2e:stack:up && npm run build:e2e && npm run e2e:test"
   },

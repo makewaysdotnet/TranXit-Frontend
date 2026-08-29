@@ -6,6 +6,7 @@ const { execFileSync } = require("node:child_process");
 
 const frontendRoot = path.resolve(__dirname, "../..");
 const backendRoot = path.resolve(frontendRoot, "../TranXIT-Backend/TranXit");
+const productionCaddyfile = path.join(backendRoot, "ops/Caddyfile");
 // Already excluded by both .gitignore and .dockerignore. Never enter a build layer.
 const runtimeRoot = path.join(frontendRoot, "e2e/.auth/edge-runtime");
 const activeFile = path.join(runtimeRoot, "active.json");
@@ -52,6 +53,7 @@ function runtimePaths(runtime) {
     admission: path.join(dir, "admission"),
     gate: path.join(dir, "admission/open"),
     ca: path.join(dir, "caddy-root.crt"),
+    credibilityCaddy: path.join(dir, "Caddyfile.credibility"),
     logs: path.join(dir, "logs"),
     results: path.join(dir, "results"),
   };
@@ -70,9 +72,13 @@ function createRuntime(httpsPort = 18443) {
   const id = randomBytes(8).toString("hex");
   const secret = () => `E9!${randomBytes(24).toString("hex")}`;
   return {
-    version: 1,
+    version: 2,
     projectName: `tranxit-edge-test-${id}`,
     httpsPort: assertPort(httpsPort),
+    caddyFile: productionCaddyfile,
+    rateLimitEvents: 100,
+    rateLimitWindow: "10s",
+    credibilityMutation: null,
     createdAt: new Date().toISOString(),
     phase: "created",
     dockerContext: "",
@@ -113,6 +119,7 @@ function composeEnv(runtime) {
     TRANXIT_IMAGE_TAG: runtime.projectName,
     TRANXIT_FRONTEND_BUILD_CONTEXT: frontendRoot,
     TRANXIT_ADMISSION_DIR: files.admission,
+    TRANXIT_EDGE_CADDYFILE: runtime.caddyFile,
     DOMAIN: hosts.app,
     STAGING_DOMAIN: hosts.secondary,
     MAILPIT_DOMAIN: hosts.mail,
@@ -142,9 +149,8 @@ function composeEnv(runtime) {
     MAIL_FROM: "edge-mail@example.test",
     MAILPIT_BASIC_AUTH_USER: secrets.mailUser,
     MAILPIT_BASIC_AUTH_HASH: secrets.mailHash,
-    // Preserve the real limiter, without treating this suite as a rate-limit test.
-    AUTH_RATE_LIMIT_EVENTS: "1000",
-    AUTH_RATE_LIMIT_WINDOW: "1m",
+    AUTH_RATE_LIMIT_EVENTS: String(runtime.rateLimitEvents),
+    AUTH_RATE_LIMIT_WINDOW: runtime.rateLimitWindow,
   });
 }
 
@@ -231,8 +237,13 @@ function loadRuntime() {
   const files = runtimePaths(active);
   assertOwnedPath(files.state);
   const runtime = JSON.parse(fs.readFileSync(files.state, "utf8"));
-  requireInvariant(runtime.version === 1 && runtime.projectName === active.projectName, "Invalid edge fixture state.");
+  requireInvariant(runtime.version === 2 && runtime.projectName === active.projectName, "Invalid edge fixture state.");
   assertPort(runtime.httpsPort);
+  const productionSource = path.resolve(runtime.caddyFile) === path.resolve(productionCaddyfile);
+  const credibilitySource = path.resolve(runtime.caddyFile) === path.resolve(files.credibilityCaddy) &&
+    runtime.credibilityMutation === "strip-admission-imports";
+  requireInvariant(productionSource || credibilitySource, "Invalid edge Caddyfile source.");
+  requireInvariant(runtime.rateLimitEvents === 100 && runtime.rateLimitWindow === "10s", "Invalid edge rate-limit contract.");
   for (const key of Object.keys(createRuntime().secrets)) {
     requireInvariant(typeof runtime.secrets?.[key] === "string" && runtime.secrets[key].length >= 12, "Incomplete edge fixture credentials.");
   }
@@ -307,9 +318,9 @@ function assertComposeModel(model, runtime) {
       } else {
         requireInvariant(name === "caddy" && mount.type === "bind" && mount.read_only === true, "Unexpected host bind mount.");
         const expected = mount.target === "/etc/caddy/Caddyfile"
-          ? path.join(backendRoot, "ops/Caddyfile.staging")
+          ? runtime.caddyFile
           : mount.target === "/run/tranxit/admission" ? files.admission : "";
-        requireInvariant(expected && path.resolve(mount.source) === path.resolve(expected), "Caddy must use the actual staging config and the fixture-local admission directory.");
+        requireInvariant(expected && path.resolve(mount.source) === path.resolve(expected), "Caddy must use the selected production config bytes and the fixture-local admission directory.");
       }
     }
   }
@@ -338,7 +349,7 @@ function assertComposeModel(model, runtime) {
 
 // Trust only this fixture's exported Caddy CA; never disable Node/application TLS.
 /** @returns {Promise<{status: number, body: string}>} */
-function localHttps(runtime, origin, pathname, headers = {}) {
+function localHttps(runtime, origin, pathname, headers = {}, options = {}) {
   requireInvariant(Object.values(origins(runtime)).includes(origin), "Only fixture-local origins are permitted.");
   requireInvariant(pathname.startsWith("/") && !pathname.startsWith("//"), "Use an origin-relative fixture path.");
   const url = new URL(pathname, origin);
@@ -346,9 +357,10 @@ function localHttps(runtime, origin, pathname, headers = {}) {
   const caPath = runtimePaths(runtime).ca;
   assertOwnedPath(caPath);
   return new Promise((resolve, reject) => {
-    const request = https.get(url, {
+    const request = https.request(url, {
       ca: fs.readFileSync(caPath),
       headers,
+      method: options.method || "GET",
       family: 4,
       // .localhost is reserved; do not depend on OS DNS or edit the hosts file.
       lookup: (_hostname, _options, callback) => callback(null, "127.0.0.1", 4),
@@ -360,16 +372,18 @@ function localHttps(runtime, origin, pathname, headers = {}) {
         body += chunk;
         if (body.length > 2_000_000) request.destroy(new Error("Fixture response exceeded the size limit."));
       });
-      response.on("end", () => resolve({ status: response.statusCode ?? 0, body }));
+      response.on("end", () => resolve({ status: response.statusCode ?? 0, body, headers: response.headers }));
       response.on("error", () => reject(new Error("Local HTTPS response failed.")));
     });
     request.on("timeout", () => request.destroy(new Error("Local HTTPS request timed out.")));
     request.on("error", () => reject(new Error("Local HTTPS request failed; check the fixture and its Caddy CA.")));
+    if (options.body !== undefined) request.write(String(options.body));
+    request.end();
   });
 }
 
 module.exports = {
-  frontendRoot, backendRoot, runtimeRoot, activeFile, hosts, composeFiles,
+  frontendRoot, backendRoot, productionCaddyfile, runtimeRoot, activeFile, hosts, composeFiles,
   requireInvariant, assertProjectName, assertPort, runtimePaths, origins,
   createRuntime, isolatedEnv, composeEnv, assertLocalDockerHost, prepareRuntime,
   saveRuntime, loadRuntime, setAdmission, retireRuntime, redact, assertComposeModel, localHttps,
