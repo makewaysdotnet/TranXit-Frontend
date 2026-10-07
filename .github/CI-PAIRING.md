@@ -6,8 +6,9 @@ merge commit) together with the verified counterpart SHA in `source-pair.json`.
 
 Change the counterpart pin in a separately reviewed commit after the counterpart
 change exists remotely. There is no same-name branch fallback, default-main
-fallback, or manual mutable-ref override. The initial pins are the retained B3
-baseline, not a claim that uncommitted launch-integrity changes passed paired CI.
+fallback, or manual mutable-ref override. A default pin identifies a specific
+committed counterpart, not necessarily its current branch head. Advance it to a
+compatible reviewed commit when publishing a cross-repository transport change.
 A two-repository release must retain successful evidence for its final exact pair;
 updating a pin by itself is not proof of compatibility.
 
