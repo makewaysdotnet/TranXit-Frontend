@@ -2,6 +2,11 @@ name: Production Browser Edge
 
 on:
   workflow_dispatch:
+    inputs:
+      counterpart_sha:
+        description: Optional operator-selected backend full lowercase 40-character SHA (never a branch or tag)
+        required: false
+        type: string
   pull_request:
   push:
     branches:
@@ -34,52 +39,34 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Resolve exact backend branch
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: TranXit-Frontend/package-lock.json
+
+      - name: Check immutable pairing contracts
+        run: node --test .github/scripts/ci-pair.test.mjs
+
+      - name: Validate and resolve immutable backend selection
         id: backend-ref
         env:
-          CANDIDATE: ${{ github.head_ref || github.ref_name }}
-        run: |
-          set -euo pipefail
-          backend_sha="$(git ls-remote --exit-code --heads https://github.com/makewaysdotnet/TranXIT-Backend.git "$CANDIDATE" | awk 'NR == 1 { print $1 }')" || {
-            echo "::error::Exact backend branch '$CANDIDATE' is unavailable; production-edge CI does not fall back to another ref."
-            exit 1
-          }
-          if ! [[ "$backend_sha" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "::error::Exact backend branch '$CANDIDATE' did not resolve to one commit."
-            exit 1
-          fi
-          echo "ref=$backend_sha" >> "$GITHUB_OUTPUT"
-          echo "branch=$CANDIDATE" >> "$GITHUB_OUTPUT"
+          COUNTERPART_SHA: ${{ inputs.counterpart_sha || '' }}
+        run: node .github/scripts/ci-pair.mjs resolve .github/ci-pair.json makewaysdotnet/TranXit-Frontend pairing-evidence/selection.json
 
-      - name: Checkout exact backend branch
+      - name: Checkout exact backend commit
         id: backend
         uses: actions/checkout@v4
         with:
           repository: makewaysdotnet/TranXIT-Backend
-          ref: ${{ steps.backend-ref.outputs.ref }}
+          ref: ${{ steps.backend-ref.outputs.sha }}
           path: TranXIT-Backend
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Record exact refs
-        run: |
-          set -euo pipefail
-          mkdir -p e2e/.auth/edge-ci
-          frontend_sha="$(git rev-parse HEAD)"
-          backend_sha="$(git -C ../TranXIT-Backend rev-parse HEAD)"
-          test "$backend_sha" = "${{ steps.backend-ref.outputs.ref }}"
-          {
-            printf 'frontend_ref=%s\n' "$frontend_sha"
-            printf 'backend_ref=%s\n' "$backend_sha"
-            printf 'backend_branch=%s\n' "${{ steps.backend-ref.outputs.branch }}"
-          } | tee e2e/.auth/edge-ci/exact-refs.txt
-
-      - name: Setup Node 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: TranXit-Frontend/package-lock.json
+      - name: Verify checkout and record exact pair
+        run: node .github/scripts/ci-pair.mjs record pairing-evidence/selection.json makewaysdotnet/TranXit-Frontend . ../TranXIT-Backend pairing-evidence/source-pair.json
 
       - name: Verify local Docker
         run: docker info
@@ -119,8 +106,9 @@ jobs:
         with:
           name: production-browser-edge-${{ github.run_attempt }}
           path: |
+            TranXit-Frontend/pairing-evidence/
             TranXit-Frontend/e2e/.auth/edge-ci/
             TranXit-Frontend/e2e/.auth/edge-runtime/*/logs/
             TranXit-Frontend/e2e/.auth/edge-runtime/*/results/
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 30

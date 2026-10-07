@@ -156,6 +156,12 @@ test("T-E2E-EDGE.RawAuthAliasesContained", async ({ edge }) => {
 test("T-E2E-EDGE.BffRefreshLogout", async ({ edge }) => {
   // UC-NFR-7, UC-AUTH-3, UC-AUTH-10
   const actor = await edge.register("Customer");
+  // A raw gateway logout alias must not revoke an ambient browser credential.
+  // Some edges reject the alias before AccountService; either boundary is safe.
+  const ambientLogout = await browserJson(actor.page, "/api/logout", { method: "POST" });
+  expectNoTokens(ambientLogout);
+  expect([401, 404, 405]).toContain(ambientLogout.status);
+  publicIdentity(await browserJson(actor.page, "/api/auth/refresh", { method: "POST" }));
   const before = await actor.page.context().cookies();
   // JWT issue timestamps have whole-second precision; cross that boundary explicitly.
   await new Promise((resolve) => setTimeout(resolve, 1_100));
@@ -168,6 +174,7 @@ test("T-E2E-EDGE.BffRefreshLogout", async ({ edge }) => {
   await expectSecureSession(actor.page);
   publicIdentity(await browserJson(actor.page, "/api/auth/refresh/", { method: "POST" }));
   const beforeLogout = await actor.page.context().cookies();
+  expect(successValue<boolean>(await browserJson(actor.page, "/api/auth/logout", { method: "POST" }))).toBe(true);
   expect(successValue<boolean>(await browserJson(actor.page, "/api/auth/logout", { method: "POST" }))).toBe(true);
   expect((await actor.page.context().cookies()).some((cookie) => ["tranxit_session", "tranxit_refresh"].includes(cookie.name))).toBe(false);
   expectDenied(await browserJson(actor.page, "/api/auth/refresh", { method: "POST" }), 401);

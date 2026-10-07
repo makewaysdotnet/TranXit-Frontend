@@ -10,6 +10,8 @@
 /coverage
 /test-results
 /playwright-report
+/pairing-evidence/
+/pairing-evidence/
 # Includes edge-runtime credentials/CA/logs; .dockerignore also excludes this tree.
 /e2e/.auth
 trace.zip

@@ -4,6 +4,11 @@ const CUSTOMER_HOME = "/dashboard";
 const COURIER_HOME = "/courier/dashboard";
 
 function isCourierRoute(pathname: string) {
+  // Public, repository-owned artwork is fetched without session cookies by the
+  // image optimizer. Do not redirect those files through the courier login gate.
+  if (pathname.startsWith("/courier/figma/") && /\.(png|jpe?g|webp|svg)$/i.test(pathname)) {
+    return false;
+  }
   return pathname === "/courier" || pathname.startsWith("/courier/");
 }
 

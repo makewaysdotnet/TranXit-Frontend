@@ -2,10 +2,18 @@ name: Frontend E2E
 
 on:
   workflow_dispatch:
+    inputs:
+      counterpart_sha:
+        description: Optional operator-selected backend full lowercase 40-character SHA (never a branch or tag)
+        required: false
+        type: string
   pull_request:
   push:
     branches:
       - main
+
+permissions:
+  contents: read
 
 jobs:
   frontend-e2e:
@@ -26,63 +34,34 @@ jobs:
     steps:
       - name: Checkout frontend
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
-      - name: Resolve backend ref
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Check immutable pairing contracts
+        run: node --test .github/scripts/ci-pair.test.mjs
+
+      - name: Validate and resolve immutable backend selection
         id: backend-ref
-        run: |
-          backend_repo="https://github.com/makewaysdotnet/TranXIT-Backend.git"
-          fallback="feature/web-first-mvp"
-          fixture_path="TranXit/docker-compose.test.yml"
-          candidate="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
-
-          has_backend_fixture() {
-            ref="$1"
-            tmp_dir="$(mktemp -d)"
-            git -C "$tmp_dir" init -q
-            git -C "$tmp_dir" remote add origin "$backend_repo"
-            if ! git -C "$tmp_dir" fetch --depth=1 origin "$ref" >/dev/null 2>&1; then
-              rm -rf "$tmp_dir"
-              return 1
-            fi
-            git -C "$tmp_dir" cat-file -e "FETCH_HEAD:$fixture_path" >/dev/null 2>&1
-            found=$?
-            rm -rf "$tmp_dir"
-            return "$found"
-          }
-
-          if git ls-remote --exit-code --heads "$backend_repo" "$candidate" >/dev/null; then
-            selected="$candidate"
-          else
-            echo "::notice::Backend branch $candidate was not found; falling back to $fallback"
-            selected="$fallback"
-          fi
-
-          if ! has_backend_fixture "$selected"; then
-            if [ "$selected" != "$fallback" ]; then
-              echo "::error::Backend $selected is missing $fixture_path; falling back to $fallback"
-              selected="$fallback"
-            fi
-
-            if ! has_backend_fixture "$selected"; then
-              echo "::error::Backend fallback $selected is missing $fixture_path"
-              exit 1
-            fi
-          fi
-
-          echo "ref=$selected" >> "$GITHUB_OUTPUT"
+        env:
+          COUNTERPART_SHA: ${{ inputs.counterpart_sha || '' }}
+        run: node .github/scripts/ci-pair.mjs resolve .github/ci-pair.json makewaysdotnet/TranXit-Frontend pairing-evidence/selection.json
 
       - name: Checkout backend test stack
         uses: actions/checkout@v4
         with:
           repository: makewaysdotnet/TranXIT-Backend
-          ref: ${{ steps.backend-ref.outputs.ref }}
+          ref: ${{ steps.backend-ref.outputs.sha }}
           path: TranXIT-Backend
+          persist-credentials: false
 
-      - name: Setup Node 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
+      - name: Verify checkout and record exact pair
+        run: node .github/scripts/ci-pair.mjs record pairing-evidence/selection.json makewaysdotnet/TranXit-Frontend . TranXIT-Backend pairing-evidence/source-pair.json
 
       - name: Verify Docker
         run: docker info
@@ -156,3 +135,12 @@ jobs:
             *.log
             ${{ env.TRANXIT_BACKEND_DIR }}/*.log
           if-no-files-found: ignore
+
+      - name: Upload immutable source pair
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-e2e-source-pair-${{ github.run_attempt }}
+          path: pairing-evidence/
+          if-no-files-found: warn
+          retention-days: 30

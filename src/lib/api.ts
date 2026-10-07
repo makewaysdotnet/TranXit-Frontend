@@ -83,13 +83,14 @@ export async function refreshRequest(refreshToken?: string) {
   return apiRequest<LoginResponse>("/api/refresh", {
     method: "POST",
     body: JSON.stringify({ refreshToken }),
+    signal: AbortSignal.timeout(15_000),
   });
 }
 
 export async function logoutRequest(refreshToken?: string) {
   return apiRequest<boolean>("/api/logout", {
     method: "POST",
-    headers: refreshToken ? { Cookie: `tranxit_refresh=${refreshToken}` } : undefined,
+    body: JSON.stringify({ refreshToken }),
   });
 }
 
