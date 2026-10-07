@@ -1,0 +1,114 @@
+name: Production Browser Edge
+
+on:
+  workflow_dispatch:
+    inputs:
+      counterpart_sha:
+        description: Optional operator-selected backend full lowercase 40-character SHA (never a branch or tag)
+        required: false
+        type: string
+  pull_request:
+  push:
+    branches:
+      - main
+      - 'codex/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-browser-edge-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  production-browser-edge:
+    name: production-browser-edge
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      TRANXIT_EDGE_E2E: "1"
+    defaults:
+      run:
+        working-directory: TranXit-Frontend
+    steps:
+      - name: Checkout frontend
+        id: frontend
+        uses: actions/checkout@v4
+        with:
+          path: TranXit-Frontend
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: TranXit-Frontend/package-lock.json
+
+      - name: Check immutable pairing contracts
+        run: node --test .github/scripts/ci-pair.test.mjs
+
+      - name: Validate and resolve immutable backend selection
+        id: backend-ref
+        env:
+          COUNTERPART_SHA: ${{ inputs.counterpart_sha || '' }}
+        run: node .github/scripts/ci-pair.mjs resolve .github/ci-pair.json makewaysdotnet/TranXit-Frontend pairing-evidence/selection.json
+
+      - name: Checkout exact backend commit
+        id: backend
+        uses: actions/checkout@v4
+        with:
+          repository: makewaysdotnet/TranXIT-Backend
+          ref: ${{ steps.backend-ref.outputs.sha }}
+          path: TranXIT-Backend
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify checkout and record exact pair
+        run: node .github/scripts/ci-pair.mjs record pairing-evidence/selection.json makewaysdotnet/TranXit-Frontend . ../TranXIT-Backend pairing-evidence/source-pair.json
+
+      - name: Verify local Docker
+        run: docker info
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Check production-edge fixture and discover all cases
+        run: |
+          npm run e2e:edge:unit
+          npm run e2e:edge:check
+          npm run e2e:edge:test -- --list
+
+      - name: Credibility check - admission mutation must fail
+        run: npm run e2e:edge:credibility
+
+      - name: Start production-edge fixture
+        run: npm run e2e:edge:up
+
+      - name: Run full production browser-edge suite
+        run: npm run e2e:edge:test
+
+      - name: Edge diagnostics
+        if: failure()
+        run: npm run e2e:edge:logs || true
+
+      - name: Stop production-edge fixture
+        if: always()
+        run: npm run e2e:edge:down
+
+      - name: Upload sanitized edge evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-browser-edge-${{ github.run_attempt }}
+          path: |
+            TranXit-Frontend/pairing-evidence/
+            TranXit-Frontend/e2e/.auth/edge-ci/
+            TranXit-Frontend/e2e/.auth/edge-runtime/*/logs/
+            TranXit-Frontend/e2e/.auth/edge-runtime/*/results/
+          if-no-files-found: warn
+          retention-days: 30

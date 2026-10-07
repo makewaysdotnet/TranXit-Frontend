@@ -2,8 +2,9 @@
 
 This is a disposable local test stack, not a deployment command. It composes the
 actual backend base, production and staging files with `docker-compose.edge-test.yml`.
-It uses the real staging Caddyfile/rate limiter/Mailpit basic auth, production Next
-Dockerfile, .NET Production services, SQL migrations/reference data and RabbitMQ.
+It mounts the checked-out production `ops/Caddyfile` bytes, production rate limiter,
+production Next Dockerfile, .NET Production services, SQL migrations/reference data
+and RabbitMQ. The staging layer contributes only internal Mailpit SMTP.
 No deployment, backup, restore, admin bootstrap or development seeder is invoked.
 
 ## Commands
@@ -16,6 +17,7 @@ Compose 2.24.4+ is required for `!override`.
 npm run e2e:edge:unit
 npm run e2e:edge:check
 npm run e2e:edge:test -- --list
+npm run e2e:edge:credibility
 
 # Only after the coordinating task approves local builds/runtime:
 npm run e2e:edge:up
@@ -28,7 +30,8 @@ npm run e2e:edge:down
 
 `check`, `unit` and test discovery do not build images or start containers.
 `up` builds the actual images, starts with admission closed, checks both public
-origins return 503, checks the private same-Caddy BFF listener, then opens the
+origins return exact 503/maintenance-body/`Retry-After: 60` responses, checks the
+private same-Caddy BFF listener, records the mounted Caddy SHA, then opens the
 fixture-local gate. Private smoke alone is available through
 `node e2e/scripts/edge-stack.mjs smoke-private`, including while the gate is closed.
 
@@ -36,8 +39,8 @@ The default HTTPS port is 18443, with a free loopback port selected if occupied.
 To select one explicitly, set `$env:TRANXIT_EDGE_HTTPS_PORT = '19443'` before `up`.
 The chosen origin is printed. Existing gateway ports 18088/18188 and frontend
 ports 3000/3100 are never reused. No SQL, RabbitMQ, gateway, SMTP, Mailpit API,
-plain HTTP, or private 8082 port is published. Mailpit is accessible only through
-its separate basic-auth Caddy site on the same HTTPS port.
+plain HTTP, or private 8082 port is published. OTP retrieval uses the internal
+backend network through a guarded fixture command; production Caddy exposes no Mailpit site.
 
 ## Isolation And Secrets
 
@@ -45,8 +48,9 @@ Each run has a random `tranxit-edge-test-*` project, image tags, networks and na
 volumes. Remote Docker TCP/SSH endpoints are rejected. The wrapper supplies a
 fresh empty env file and an allowlisted process environment; application URLs,
 production credentials, Docker overrides and TLS-disabling options are not inherited.
-All credentials are cryptographically generated. The inbox bcrypt hash comes from
-the real Caddy CLI with the password supplied through stdin, never command arguments.
+All credentials are cryptographically generated. The staging Compose layer still
+requires a Mailpit bcrypt value, so the fixture derives it through the real Caddy CLI
+with the password supplied through stdin, never command arguments.
 
 State lives under `e2e/.auth/edge-runtime/`, already ignored by Git **and Docker**.
 POSIX directories/files are restricted to 0700/0600; Windows uses a protected ACL
@@ -68,6 +72,13 @@ verify it explicitly and resolve the fixture names to loopback. Playwright's
 `ignoreHTTPSErrors` exception is confined to the fixture-created browser contexts;
 neither the Next app nor .NET nor global Node TLS verification is disabled.
 
+The production Caddyfile is not rewritten for the green suite. The exact CI-only
+deltas are: `DOMAIN` and `STAGING_DOMAIN` are reserved `.localhost` names (therefore
+local CA instead of public ACME), host port 443 is bound to one random loopback port,
+and `/run/tranxit/admission` is a fixture-owned directory. Mailpit remains internal
+and is not added to production Caddy. `edge-artifacts.tsv` records canonical source,
+selected source, and in-container SHA-256 for every browser case.
+
 ## Coverage
 
 - `T-E2E-EDGE.CookieOnlyGoldenFlow`: real UI register, Mailpit OTP, verification,
@@ -84,14 +95,21 @@ neither the Next app nor .NET nor global Node TLS verification is disabled.
 - `T-E2E-EDGE.AdmissionGatePreservesWrites`: real Caddy 503 responses, spoofed-header
   denial, private smoke while closed, refused creates add no jobs, and an acknowledged
   job survives close/reopen.
+- Post-suite rate contract: exactly 100 configured auth events are admitted within
+  10 seconds, request 101 returns 429, and a request is admitted after the window.
 
 The six browser tests run serially on Chromium desktop, tablet and mobile (18 cases).
 No fetch/page.route mocks, direct gateway tokens, dev OTP cookies or demo accounts
 are used. Mailpit API access is only for OTP retrieval. Browser trace/video/screenshot
 and failure DOM retention are off to avoid recording credentials; sanitized wrapper
-and service logs are retained instead. The normal development config skips this suite.
-The fixture raises the configured auth rate limit to 1000 events/minute for alias
-enumeration; this suite does not verify the deployed rate-limit threshold.
+and service logs are retained instead. The normal Playwright config excludes this suite;
+the dedicated edge config refuses to start without `TRANXIT_EDGE_E2E=1`, and the source
+contains no self-skip. A full run must record all 18 mounted-file rows or it fails.
+
+`e2e:edge:credibility` copies production Caddy into the private ignored fixture directory,
+changes only the two public-site imports, requires startup to fail because closed admission
+returns 200, records the exact diff, and removes only that fixture. The normal green run
+then mounts the pristine checkout bytes.
 
 These tests do not close the full Batch 3 recovery-journal/fault-injection matrix or
 prove a staging restore drill. They use the approved all-in quote arithmetic contract,

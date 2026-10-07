@@ -8,6 +8,17 @@ import {
   seedCourierBid,
 } from "../helpers/live-data";
 
+test("T-E2E-COUR.PublicArtworkOptimizesWithoutCookies", async ({ request }) => {
+  // Repository-owned artwork is public; application routes remain role-protected.
+  const asset = "/courier/figma/dashboard/avatar.png";
+  const original = await request.get(asset, { maxRedirects: 0 });
+  expect(original.status()).toBe(200);
+  expect(original.headers()["content-type"]).toContain("image/");
+  const optimized = await request.get(`/_next/image?url=${encodeURIComponent(asset)}&w=64&q=75`);
+  expect(optimized.status()).toBe(200);
+  expect(optimized.headers()["content-type"]).toContain("image/");
+});
+
 test("T-E2E-CUST.GoldenFlow", async ({ page, request }) => {
   // UC-AUTH-1, UC-AUTH-2, UC-AUTH-3, UC-CUST-2, UC-CUST-4, UC-CUST-5
   const email = `e2e.customer.${Date.now()}@tranxit.local`;

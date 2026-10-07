@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { refreshRequest } from "./api";
 import { clearAuthCookies, setAuthenticatedCookies } from "./auth-session";
 import { ApiResult } from "./types";
+import { coordinateAuthRefresh } from "./auth-refresh-coordinator";
 
 export async function getServerAuth() {
   const cookieStore = await cookies();
@@ -41,7 +42,7 @@ export async function apiRequestWithAuthRefresh<T>(
     };
   }
 
-  const refreshed = await refreshRequest(refreshToken);
+  const refreshed = await coordinateAuthRefresh(refreshToken, () => refreshRequest(refreshToken));
   if (!refreshed.isSuccess || !refreshed.value?.token || !refreshed.value.refreshToken) {
     clearAuthCookies(cookieStore);
     return {

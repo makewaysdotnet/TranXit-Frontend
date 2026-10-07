@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { refreshRequest } from "@/lib/api";
 import { clearAuthCookies, setAuthenticatedCookies } from "@/lib/auth-session";
 import { toPublicAuthResult } from "@/lib/public-auth";
+import { coordinateAuthRefresh } from "@/lib/auth-refresh-coordinator";
 
 export async function POST() {
   const cookieStore = await cookies();
@@ -17,7 +18,7 @@ export async function POST() {
 
   let result;
   try {
-    result = await refreshRequest(refreshToken);
+    result = await coordinateAuthRefresh(refreshToken, () => refreshRequest(refreshToken));
   } catch {
     return NextResponse.json(
       { isSuccess: false, error: ["Unable to reach local backend"] },
